@@ -29,23 +29,21 @@ N = 30  # 반복 횟수
 def cpu_input(img):
     """ONNX 원본 모델의 입력: float32, NCHW, 정규화까지 CPU가 한다"""
     if name.startswith("yolo"):
-        x, _, _ = letterbox(img, size)
+        x = letterbox(img, size)[0]
         x = cv2.cvtColor(x, cv2.COLOR_BGR2RGB).astype(np.float32) / 255
     else:
-        x = cv2.cvtColor(
-            cv2.resize(img, (size, size), interpolation=cv2.INTER_AREA), cv2.COLOR_BGR2RGB
-        )
-        x = (x.astype(np.float32) / 255 - [0.485, 0.456, 0.406]) / [0.229, 0.224, 0.225]
+        x = cv2.resize(img, (size, size), interpolation=cv2.INTER_AREA)
+        x = cv2.cvtColor(x, cv2.COLOR_BGR2RGB).astype(np.float32) / 255
+        x = (x - [0.485, 0.456, 0.406]) / [0.229, 0.224, 0.225]
     return np.ascontiguousarray(x.transpose(2, 0, 1)[None], np.float32)
 
 
 def npu_input(img):
     """NPU 모델의 입력: uint8, NHWC 그대로(정규화는 모델 안에서)"""
-    x = (
-        letterbox(img, size)[0]
-        if name.startswith("yolo")
-        else cv2.resize(img, (size, size), interpolation=cv2.INTER_AREA)
-    )
+    if name.startswith("yolo"):
+        x = letterbox(img, size)[0]
+    else:
+        x = cv2.resize(img, (size, size), interpolation=cv2.INTER_AREA)
     return to_npu(x)
 
 

@@ -1,5 +1,6 @@
 # 실습 4: 영상 객체 검출의 단계별 시간을 재고, 단계를 겹쳐(파이프라인) 처리량을 높인다
-#   python3 labs/04_pipeline.py samples/videos/crossing.mp4 [yolo11n|yolo26n] [--save out.mp4]
+#   python3 labs/04_pipeline.py samples/videos/crossing.mp4 [--model yolo26n] [--save out.mp4]
+import argparse
 import sys
 import time
 from collections import deque
@@ -20,16 +21,15 @@ from labkit import (
 )
 from dx_engine import InferenceEngine
 
-args = [a for a in sys.argv[1:] if not a.startswith("--")]
-src = args[0]
-kind = args[1] if len(args) > 1 else "yolo11n"
-save = sys.argv[sys.argv.index("--save") + 1] if "--save" in sys.argv else None
-if save in args:
-    args.remove(save)
+MODELS = {"yolo11n": "yolo11-n_640x640.dxnn", "yolo26n": "yolo26-n_640x640.dxnn"}
+ap = argparse.ArgumentParser()
+ap.add_argument("video")
+ap.add_argument("--model", choices=list(MODELS), default="yolo11n")
+ap.add_argument("--save", help="겹쳐 처리한 결과를 영상(mp4)으로 저장")
+a = ap.parse_args()
+src, kind, save = a.video, a.model, a.save
 decode = yolo11_decode if kind == "yolo11n" else yolo26_decode
-ie = InferenceEngine(
-    model({"yolo11n": "yolo11-n_640x640.dxnn", "yolo26n": "yolo26-n_640x640.dxnn"}[kind])
-)
+ie = InferenceEngine(model(MODELS[kind]))
 SIZE = (1280, 720)
 
 
