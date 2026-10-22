@@ -58,15 +58,12 @@ def handle(frame, dets, idx):
         if len(tr.path) >= 2 and tr.id not in counted:
             s0, s1 = side(tr.path[-2], A, B), side(tr.path[-1], A, B)
             if s0 != 0 and s1 != 0 and s0 != s1:  # 선을 넘었다
-                (px, py), (qx, qy) = (
-                    tr.path[0],
-                    tr.path[-1],
-                )  # 처음 본 곳 → 지금 위치로 방향을 정한다
-                d = (
-                    ("right" if qx > px else "left")
-                    if vertical
-                    else ("down" if qy > py else "up")
-                )
+                # 처음 본 곳 → 지금 위치로 방향을 정한다
+                (px, py), (qx, qy) = tr.path[0], tr.path[-1]
+                if vertical:
+                    d = "right" if qx > px else "left"
+                else:
+                    d = "down" if qy > py else "up"
                 counted[tr.id] = d
                 key = (COCO[tr.cls], d)
                 total[key] = total.get(key, 0) + 1

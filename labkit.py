@@ -153,9 +153,8 @@ def yolo11_decode(pred, r, off, conf=0.25, iou=0.45, classes=None):
         return np.zeros((0, 6), np.float32)
     xywh = p[:, :4].copy()
     xywh[:, :2] -= xywh[:, 2:] / 2  # 가운데 → 왼쪽 위
-    idx = np.array(
-        cv2.dnn.NMSBoxesBatched(xywh.tolist(), score.tolist(), cls.tolist(), conf, iou), int
-    ).reshape(-1)
+    idx = cv2.dnn.NMSBoxesBatched(xywh.tolist(), score.tolist(), cls.tolist(), conf, iou)
+    idx = np.array(idx, int).reshape(-1)
     b = xywh[idx]
     b[:, 2:] += b[:, :2]
     return np.column_stack([unletter(b, r, off), score[idx], cls[idx]]).astype(np.float32)

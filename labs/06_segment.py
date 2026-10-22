@@ -24,9 +24,8 @@ keep = score >= 0.3
 p, cls, score = p[keep], cls[keep], score[keep]
 xywh = p[:, :4].copy()
 xywh[:, :2] -= xywh[:, 2:] / 2
-idx = np.array(
-    cv2.dnn.NMSBoxesBatched(xywh.tolist(), score.tolist(), cls.tolist(), 0.3, 0.45), int
-).reshape(-1)
+idx = cv2.dnn.NMSBoxesBatched(xywh.tolist(), score.tolist(), cls.tolist(), 0.3, 0.45)
+idx = np.array(idx, int).reshape(-1)
 
 # 마스크 = 계수(32) × 원형 마스크(32×160×160). ARM에서 행렬 곱 한 번
 coef = p[idx, 84:]

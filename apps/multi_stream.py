@@ -54,9 +54,8 @@ class Camera:
                 if stop.is_set():
                     break
                 k += 1
-                time.sleep(
-                    max(0.0, t0 + k / video.fps - time.perf_counter())
-                )  # 실제 카메라 속도로
+                # 실제 카메라 속도로
+                time.sleep(max(0.0, t0 + k / video.fps - time.perf_counter()))
                 with self.lock:
                     if self.frame is not None:
                         self.dropped += 1  # 처리 전에 다음 프레임이 왔다

@@ -35,9 +35,8 @@ def faces(pred, r, off):
         return np.zeros((0, 4))
     xywh = p[:, :4].copy()
     xywh[:, :2] -= xywh[:, 2:] / 2
-    idx = np.array(cv2.dnn.NMSBoxes(xywh.tolist(), score.tolist(), a.conf, 0.4), int).reshape(
-        -1
-    )
+    idx = cv2.dnn.NMSBoxes(xywh.tolist(), score.tolist(), a.conf, 0.4)
+    idx = np.array(idx, int).reshape(-1)
     b = xywh[idx]
     b[:, 2:] += b[:, :2]
     return unletter(b, r, off)

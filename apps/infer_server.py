@@ -109,9 +109,8 @@ class Handler(BaseHTTPRequestHandler):
 
 ThreadingHTTPServer.request_queue_size = 128  # 동시에 몰리는 연결을 받아 둘 줄(기본 5면 끊긴다)
 ThreadingHTTPServer.daemon_threads = True
-server = ThreadingHTTPServer(
-    (a.host, a.port), Handler
-)  # 요청마다 스레드 하나: 여러 요청이 NPU를 겹쳐 쓴다
+# 요청마다 스레드 하나: 여러 요청이 NPU를 겹쳐 쓴다
+server = ThreadingHTTPServer((a.host, a.port), Handler)
 print(f"추론 서버 시작: http://{a.host}:{a.port}  (끝내려면 Ctrl+C)", flush=True)
 try:
     server.serve_forever()
