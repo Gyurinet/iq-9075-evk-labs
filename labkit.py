@@ -304,11 +304,12 @@ def _fps(src: str) -> float:
 
 class VideoSource:
     """영상 프레임을 BGR 배열로 하나씩 돌려준다.
+    hw=False(기본): OpenCV 소프트웨어 디코더가 ARM CPU에서 해독한다.
     hw=True: 하드웨어 디코더(v4l2h264dec)가 해독하고, GStreamer가 크기를 줄여 I420으로 넘기면
-             OpenCV가 BGR로 바꾼다(색 변환은 OpenCV가 ARM NEON으로 더 빠르다).
-    hw=False: OpenCV 소프트웨어 디코더(ARM)"""
+             OpenCV가 BGR로 바꾼다. 검증 장비(커널 6.8.0-1080-qcom)에서는 하드웨어 코덱을 오래
+             쓰다가 장비가 리셋된 적이 있어 기본으로 쓰지 않는다(가이드 5.5절)."""
 
-    def __init__(self, src: str, size=(1280, 720), hw=True, prefetch=4):
+    def __init__(self, src: str, size=(1280, 720), hw=False, prefetch=4):
         self.w, self.h = size
         self.hw = hw and shutil.which("gst-launch-1.0") is not None
         if self.hw:
@@ -376,42 +377,32 @@ class VideoSource:
 
 
 class VideoWriter:
-    """BGR 프레임을 H.264 mp4로 저장한다(하드웨어 인코더 v4l2h264enc)"""
+    """BGR 프레임을 mp4로 저장한다.
+    hw=False(기본): OpenCV(FFmpeg)의 MPEG-4 인코더(ARM CPU).
+    hw=True: 하드웨어 인코더 v4l2h264enc로 H.264(GStreamer)"""
 
-    def __init__(self, path: str, size=(1280, 720), fps=24):
+    def __init__(self, path: str, size=(1280, 720), fps=24, hw=False):
         w, h = size
-        cmd = [
-            "gst-launch-1.0",
-            "-q",
-            "-e",
-            "fdsrc",
-            "fd=0",
-            "!",
-            "rawvideoparse",
-            f"width={w}",
-            f"height={h}",
-            "format=bgr",
-            f"framerate={round(fps)}/1",
-            "!",
-            "videoconvert",
-            "!",
-            "video/x-raw,format=NV12",
-            "!",
-            "v4l2h264enc",
-            "!",
-            "h264parse",
-            "!",
-            "mp4mux",
-            "!",
-            "filesink",
-            f"location={path}",
-        ]
+        self.hw = hw
+        if not hw:
+            self.out = cv2.VideoWriter(path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
+            return
+        raw = f"rawvideoparse width={w} height={h} format=bgr framerate={round(fps)}/1"
+        enc = "videoconvert ! video/x-raw,format=NV12 ! v4l2h264enc ! h264parse ! mp4mux"
+        cmd = ["gst-launch-1.0", "-q", "-e", "fdsrc", "fd=0", "!", *raw.split(), "!"]
+        cmd += [*enc.split(), "!", "filesink", f"location={path}"]
         self.proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
 
     def write(self, frame):
+        if not self.hw:
+            self.out.write(frame)
+            return
         self.proc.stdin.write(np.ascontiguousarray(frame).tobytes())
 
     def close(self):
+        if not self.hw:
+            self.out.release()
+            return
         self.proc.stdin.close()
         self.proc.wait()
 

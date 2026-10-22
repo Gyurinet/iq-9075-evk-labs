@@ -19,6 +19,9 @@ ap.add_argument("src")
 ap.add_argument("--save", help="결과 영상(mp4)")
 ap.add_argument("-o", help="결과 사진(jpg)")
 ap.add_argument("--conf", type=float, default=0.3)
+ap.add_argument(
+    "--hw", action="store_true", help="하드웨어 코덱(V4L2)으로 해독·저장(가이드 5.5절 주의)"
+)
 ap.add_argument("--show", action="store_true", help="가린 자리에 상자도 그린다(확인용)")
 a = ap.parse_args()
 
@@ -74,8 +77,8 @@ if a.src.lower().endswith((".jpg", ".jpeg", ".png")):
     sys.exit()
 
 W, H = 1280, 720
-video = VideoSource(a.src, (W, H))
-out = VideoWriter(a.save or "blurred.mp4", (W, H), video.fps)
+video = VideoSource(a.src, (W, H), hw=a.hw)
+out = VideoWriter(a.save or "blurred.mp4", (W, H), video.fps, hw=a.hw)
 jobs = deque()
 n, total = 0, 0
 t0 = time.perf_counter()

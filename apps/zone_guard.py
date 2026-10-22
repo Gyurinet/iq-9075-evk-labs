@@ -36,6 +36,9 @@ ap.add_argument("--classes", default="person")
 ap.add_argument("--dwell", type=float, default=3.0)
 ap.add_argument("--min-stay", type=float, default=0.3)
 ap.add_argument("--save")
+ap.add_argument(
+    "--hw", action="store_true", help="하드웨어 코덱(V4L2)으로 해독·저장(가이드 5.5절 주의)"
+)
 ap.add_argument("--events", default="events.csv")
 ap.add_argument("--snapshots", default="snapshots")
 ap.add_argument("--conf", type=float, default=0.35)
@@ -48,8 +51,8 @@ want = [COCO.index(c) for c in a.classes.split(",")]
 Path(a.snapshots).mkdir(exist_ok=True)
 
 ie = InferenceEngine(model("yolo26-n_640x640.dxnn"))
-video = VideoSource(a.video, (W, H))
-out = VideoWriter(a.save, (W, H), video.fps) if a.save else None
+video = VideoSource(a.video, (W, H), hw=a.hw)
+out = VideoWriter(a.save, (W, H), video.fps, hw=a.hw) if a.save else None
 tracker = Tracker()
 inside = {}  # 트랙 ID → [들어온 시각, 마지막으로 본 시각, 진입 확정](초)
 GONE = 0.5  # 이만큼 안 보이면 나간 것으로 본다(검출이 한두 장 빠져도 괜찮게)

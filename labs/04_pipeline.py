@@ -26,6 +26,9 @@ ap = argparse.ArgumentParser()
 ap.add_argument("video")
 ap.add_argument("--model", choices=list(MODELS), default="yolo11n")
 ap.add_argument("--save", help="겹쳐 처리한 결과를 영상(mp4)으로 저장")
+ap.add_argument(
+    "--hw", action="store_true", help="하드웨어 코덱(V4L2)으로 해독·저장(가이드 5.5절 주의)"
+)
 a = ap.parse_args()
 src, kind, save = a.video, a.model, a.save
 decode = yolo11_decode if kind == "yolo11n" else yolo26_decode
@@ -41,7 +44,7 @@ def pre(frame):
 # ① 한 장씩 차례로: 해독 → 전처리 → NPU → 후처리 → 그리기
 print(f"[1] 한 장씩 차례로 처리 ({kind})")
 sw = Stopwatch()
-video = VideoSource(src, SIZE, prefetch=0)  # 미리 읽지 않는다(해독도 차례로)
+video = VideoSource(src, SIZE, hw=a.hw, prefetch=0)  # 미리 읽지 않는다(해독도 차례로)
 n = 0
 c0, t0 = cpu_seconds(), time.perf_counter()
 while True:
@@ -68,8 +71,8 @@ print(
 
 # ② 겹쳐 처리: NPU가 앞 프레임을 계산하는 동안 ARM은 다음 프레임을 준비하고 지난 결과를 정리한다
 print(f"[2] 단계를 겹쳐 처리(요청 {4}개까지 동시에)")
-video = VideoSource(src, SIZE)
-out_video = VideoWriter(save, SIZE) if save else None
+video = VideoSource(src, SIZE, hw=a.hw)
+out_video = VideoWriter(save, SIZE, video.fps, hw=a.hw) if save else None
 jobs = deque()
 n, total = 0, 0
 

@@ -5,9 +5,8 @@
 #   영상 파일은 끝나면 처음부터 다시 재생해 카메라처럼 쓴다(--streams로 같은 파일을 여러 대로)
 #   처리가 밀리면 새 프레임이 올 때 아직 처리하지 못한 프레임을 버린다(실시간 우선).
 #   버린 비율을 함께 보여 준다
-#   하드웨어 디코더는 --hw-max 개(기본 4)까지만 연다. 검증 장비에서 1080p 디코더 8~12개를
-#   NPU 최대 부하와 함께 쓰다가
-#   장비가 리셋된 적이 있다. 그보다 많은 카메라는 ARM 소프트웨어 디코더(OpenCV)로 받는다
+#   영상은 기본으로 ARM 소프트웨어 디코더(OpenCV)로 받는다. --hw-max N이면 앞의 N대를 하드웨어
+#   디코더로 받는다(가이드 5.5절의 주의를 먼저 읽는다)
 import argparse
 import sys
 import threading
@@ -28,7 +27,7 @@ ap.add_argument("--workers", type=int, default=6, help="NPU에 동시에 보내�
 ap.add_argument(
     "--size", default="640x360", help="분석용 해상도(작을수록 ARM 변환 부담이 준다)"
 )
-ap.add_argument("--hw-max", type=int, default=4, help="하드웨어 디코더로 받을 카메라 수 상한")
+ap.add_argument("--hw-max", type=int, default=0, help="하드웨어 디코더로 받을 카메라 수")
 a = ap.parse_args()
 sources = a.sources * a.streams if a.streams else a.sources
 W, H = (int(v) for v in a.size.split("x"))

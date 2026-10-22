@@ -33,6 +33,9 @@ ap.add_argument("video")
 ap.add_argument("--line", default="0.5,0.3,0.5,1")
 ap.add_argument("--classes", default="person,bicycle,car,bus,truck")
 ap.add_argument("--save")
+ap.add_argument(
+    "--hw", action="store_true", help="하드웨어 코덱(V4L2)으로 해독·저장(가이드 5.5절 주의)"
+)
 ap.add_argument("--csv", default="counts.csv")
 ap.add_argument("--conf", type=float, default=0.35)
 a = ap.parse_args()
@@ -44,8 +47,8 @@ want = [COCO.index(c) for c in a.classes.split(",")]
 vertical = abs(B[0] - A[0]) < abs(B[1] - A[1])
 
 ie = InferenceEngine(model("yolo26-n_640x640.dxnn"))  # NMS가 없는 모델: ARM 후처리가 가볍다
-video = VideoSource(a.video, (W, H))
-out = VideoWriter(a.save, (W, H), video.fps) if a.save else None
+video = VideoSource(a.video, (W, H), hw=a.hw)
+out = VideoWriter(a.save, (W, H), video.fps, hw=a.hw) if a.save else None
 tracker = Tracker()
 counted = {}  # 트랙 ID → 이미 센 방향
 total = {}  # (분류, 방향) → 수
