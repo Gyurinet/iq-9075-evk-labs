@@ -1,6 +1,6 @@
 # 예제 사진·영상 출처
 
-모두 위키미디어 공용(Wikimedia Commons)의 퍼블릭 도메인 또는 CC0 자료입니다. 영상은 H.264로 다시 인코딩하고 일부 구간만 잘랐으며, 사진은 긴 변을 1280px(photos/는 800px) 이하로 줄였습니다.
+모두 위키미디어 공용(Wikimedia Commons)의 퍼블릭 도메인 또는 CC0 자료입니다. 영상은 H.264로 다시 인코딩하고 일부 구간만 잘랐으며, 사진은 긴 변을 1280px(photos/는 800px) 이하로 줄였습니다(ppe/의 TIFF 원본은 JPEG로 바꿨습니다).
 
 | 파일 | 원본 | 작성자 | 라이선스 |
 |---|---|---|---|
@@ -10,6 +10,10 @@
 | `videos/crossing.mp4 (0~20초)`, `images/crossing.jpg` | [DiagonalCrosswalkYongeDundas.webm](https://commons.wikimedia.org/wiki/File:DiagonalCrosswalkYongeDundas.webm) | Raysonho @ Open Grid Scheduler / Grid Engine | CC0 |
 | `videos/pedestrians.mp4`, `images/pedestrians.jpg` | [Video Codec Test pedestrian area 1080p25.y4m.webm](https://commons.wikimedia.org/wiki/File:Video_Codec_Test_pedestrian_area_1080p25.y4m.webm) | Taurus Media Technik | CC0 |
 | `videos/roundabout.mp4 (20~40초)`, `images/roundabout.jpg` | [Contraflow traffic through roundabout on North Beach Road.ogv](https://commons.wikimedia.org/wiki/File:Contraflow_traffic_through_roundabout_on_North_Beach_Road.ogv) | Evad37 | CC0 |
+| `ppe/briefing.jpg` | [75 construction workers in Lawrenceville, Ga., participated in a two-hour fall safety training with OSHA at a Barton Malow construction site. (14405739564).jpg](https://commons.wikimedia.org/wiki/File:75_construction_workers_in_Lawrenceville,_Ga.,_participated_in_a_two-hour_fall_safety_training_with_OSHA_at_a_Barton_Malow_construction_site._(14405739564).jpg) | US Department of Labor | Public domain |
+| `ppe/sheet_piling.jpg` | [Construction workers are watching and controlling the sheet piling in the old quay of the canal street Nieuwe Herengracht in Amsterdam downtown. The quay has to be renovated completely; free photo Amsterdam, Fons Heijnsbroek July 2022.tif](https://commons.wikimedia.org/wiki/File:Construction_workers_are_watching_and_controlling_the_sheet_piling_in_the_old_quay_of_the_canal_street_Nieuwe_Herengracht_in_Amsterdam_downtown._The_quay_has_to_be_renovated_completely;_free_photo_Amsterdam,_Fons_Heijnsbroek_July_2022.tif) | Fons Heijnsbroek | CC0 |
+| `ppe/road_crew.jpg` | [Special projects crew repair the road surface at the Mammoth three-way intersection (2) (48015908462).jpg](https://commons.wikimedia.org/wiki/File:Special_projects_crew_repair_the_road_surface_at_the_Mammoth_three-way_intersection_(2)_(48015908462).jpg) | Yellowstone National Park | Public domain |
+| `ppe/loading.jpg` | [200321-N-NN369-2006 (49693901548).jpg](https://commons.wikimedia.org/wiki/File:200321-N-NN369-2006_(49693901548).jpg) | Navy Medicine from Washington, DC, USA | Public domain |
 | `photos/bicycle_1.jpg` | [Bike on a snowy street in Quebec City at night.jpg](https://commons.wikimedia.org/wiki/File:Bike_on_a_snowy_street_in_Quebec_City_at_night.jpg) | Wilfredor | CC0 |
 | `photos/bicycle_2.jpg` | [Man riding a bicycle in a snowstorm in Quebec city, Quebec, Canada.jpg](https://commons.wikimedia.org/wiki/File:Man_riding_a_bicycle_in_a_snowstorm_in_Quebec_city,_Quebec,_Canada.jpg) | Wilfredor | CC0 |
 | `photos/cardboard_boxes_1.jpg` | [Boxes in grass.jpg](https://commons.wikimedia.org/wiki/File:Boxes_in_grass.jpg) | Hillebrand Steve, U.S. Fish and Wildlife Service | Public domain |

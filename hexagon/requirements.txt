@@ -1,0 +1,4 @@
+# 내장 NPU(Hexagon) 예제용, 검증한 버전(Python 3.12, aarch64)
+ai-edge-litert==2.3.0
+numpy==2.5.4
+opencv-python-headless==5.0.0.93

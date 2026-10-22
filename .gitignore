@@ -5,3 +5,5 @@ events.csv
 snapshots/
 *.mp4
 !samples/videos/*.mp4
+people.csv
+ppe_out/
