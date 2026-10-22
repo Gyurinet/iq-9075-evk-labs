@@ -24,11 +24,11 @@ a = ap.parse_args()
 models = [Model(a.model, htp=k, perf="burst") for k in (0, 1)]
 x = np.random.randint(0, 255, models[0].inputs[0]["shape"][1:]).astype(np.uint8)
 count = [0, 0]
-stop = time.perf_counter() + a.minutes * 60
+stop = threading.Event()  # 기록을 마치면 멈춘다
 
 
 def work(k):
-    while time.perf_counter() < stop:
+    while not stop.is_set():
         models[k].run(x)
         count[k] += 1
 
@@ -44,5 +44,6 @@ for _ in range(int(a.minutes * 60 // a.every)):
     temps = subprocess.run(["bash", str(TEMPS)], capture_output=True, text=True).stdout.strip()
     print(f"{now - t0:5.0f}초  {(n - last_n) / (now - last_t):7.1f} FPS  {temps}", flush=True)
     last_t, last_n = now, n
+stop.set()
 for t in threads:
     t.join()
