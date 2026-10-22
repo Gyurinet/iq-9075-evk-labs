@@ -1,6 +1,7 @@
 #!/bin/bash
 # IQ-9075 내장 NPU용 모델을 Qualcomm AI Hub 공개 저장소에서 내려받는다(~/qai-models, QAI_MODELS로 바꿀 수 있다)
-#   bash hexagon/get-models.sh
+#   bash hexagon/get-models.sh                   (전부, 약 920 MB)
+#   bash hexagon/get-models.sh yolox gear_guard_net   (이름을 주면 그 모델만)
 # 모델의 라이선스는 Hugging Face의 qualcomm/<모델> 페이지에 있다(BSD-3-Clause, Apache-2.0, MIT).
 set -e
 DIR=${QAI_MODELS:-$HOME/qai-models}
@@ -15,6 +16,9 @@ hrnet_pose:w8a8 deeplabv3_plus_mobilenet:w8a8 xlsr:w8a8 yamnet:float easyocr:w8a
 for spec in $MODELS; do
   m=${spec%%:*}
   p=${spec##*:}
+  if [ $# -gt 0 ] && ! printf '%s\n' "$@" | grep -qx "$m"; then
+    continue
+  fi
   [ -d "$m-tflite-$p" ] && continue
   echo "받는 중: $m ($p)"
   wget -q "$BASE/$m/releases/$VER/$m-tflite-$p.zip"

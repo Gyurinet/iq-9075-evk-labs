@@ -73,12 +73,15 @@ python3 labs/01_hello_npu.py
 | | `04_pipeline.py` | 영상 검출의 단계별 시간과 겹쳐 처리하기 |
 | | `05_detect.py` ~ `08_depth.py` | 검출, 인스턴스 분할, 자세 추정, 깊이 추정 |
 | | `09_npu_cores.py` | NPU 코어 나눠 쓰기 |
+| | `10_video_decode.py` | ARM 해독과 하드웨어 코덱 비교 |
+| | `11_two_npus.py` | DX-M1과 내장 NPU를 함께 쓰기 |
 | `apps/` | `line_counter.py` | 가상의 선을 지나는 사람·차량 세기 |
 | | `zone_guard.py` | 구역 진입·체류 감시와 기록 |
 | | `privacy_blur.py` | 영상 속 얼굴 가리기 |
 | | `infer_server.py`, `infer_client.py` | 사내 추론 서버(HTTP)와 호출·부하 시험 |
 | | `photo_search.py` | 비슷한 사진·중복 사진 찾기(CLIP) |
 | | `multi_stream.py` | 여러 카메라 동시 처리 |
+| | `ppe_two_npus.py` | 두 NPU로 안전 장비 점검(DX-M1 사람·얼굴, 내장 NPU 안전 장비) |
 | `tools/` | `get-models.sh`, `bench.sh` | 모델 내려받기, 모델별 성능 표 |
 | `labkit.py` | | 공용 도구(전처리, YOLO 후처리, 영상 입출력, 추적기) |
 | `samples/` | | 예제 사진·영상·소리(퍼블릭 도메인·CC0, 출처는 `samples/SOURCES.md`) |
