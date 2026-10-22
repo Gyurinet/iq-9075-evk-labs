@@ -55,10 +55,13 @@ class Camera:
                 if stop.is_set():
                     break
                 k += 1
-                if live:  # 카메라는 스스로 제 속도로 보낸다
-                    pass
-                else:  # 영상 파일은 실제 카메라 속도로 맞춰 읽는다
-                    time.sleep(max(0.0, t0 + k / video.fps - time.perf_counter()))
+                if not live:  # 영상 파일은 실제 카메라 속도로 맞춰 읽는다
+                    late = time.perf_counter() - (t0 + k / video.fps)
+                    if (
+                        late > 0.5
+                    ):  # 해독이 밀리면 따라잡으려 빨리 보내지 않는다(실제 카메라처럼)
+                        t0 += late
+                    time.sleep(max(0.0, -late))
                 with self.lock:
                     if self.frame is not None:
                         self.dropped += 1  # 처리 전에 다음 프레임이 왔다
@@ -107,27 +110,30 @@ threads = [threading.Thread(target=worker, daemon=True) for _ in range(a.workers
 for t in threads:
     t.start()
 time.sleep(3)  # 준비(디코더 시작) 시간은 빼고 잰다
+# 스레드가 수백 개면 CPU 시간 읽기에 몇 초가 걸린다. 프레임을 세는 구간과 겹치지 않게 한다
+c0, tc0 = cpu_seconds(), time.perf_counter()
 for c in cams:
     with c.lock:
         c.got = c.done = c.dropped = c.objects = 0
-c0, t0 = cpu_seconds(), time.perf_counter()
+t0 = time.perf_counter()
 time.sleep(a.seconds)
 wall = time.perf_counter() - t0
-cores = (cpu_seconds() - c0) / wall
+counts = [(c.got, c.done, c.dropped, c.objects) for c in cams]  # 이 순간의 값으로 낸다
+cores = (cpu_seconds() - c0) / (time.perf_counter() - tc0)
 stop.set()
 for t in threads:  # 하던 추론을 마치고 끝낸다(NPU를 쓰는 중에 끝내면 비정상 종료)
     t.join()
 for c in cams:  # 카메라도 받던 프레임을 마치고 디코더를 닫는다
     c.thread.join(timeout=10)
 
-got = sum(c.got for c in cams)
-done = sum(c.done for c in cams)
+got = sum(k[0] for k in counts)
+done = sum(k[1] for k in counts)
 print(f"카메라 {len(cams)}대, {a.size}, {wall:.0f}초")
-for c in cams:
+for c, (g, d, drop, obj) in zip(cams, counts, strict=True):
     print(
-        f"  #{c.i + 1}({'HW' if c.hw else 'SW'}): 받은 {c.got / wall:5.1f} fps, "
-        f"처리 {c.done / wall:5.1f} fps, 버림 {c.dropped / max(1, c.got) * 100:4.1f}%, "
-        f"물체 {c.objects / max(1, c.done):.1f}개/장"
+        f"  #{c.i + 1}({'HW' if c.hw else 'SW'}): 받은 {g / wall:5.1f} fps, "
+        f"처리 {d / wall:5.1f} fps, 버림 {drop / max(1, g) * 100:4.1f}%, "
+        f"물체 {obj / max(1, d):.1f}개/장"
     )
 print(
     f"합계: 처리 {done / wall:.1f} fps / 받은 {got / wall:.1f} fps "
