@@ -1,6 +1,7 @@
 # 실습 공용 도구: 모델 위치, 전처리, YOLO 후처리, 결과 그리기, 시간 재기
 # labs/·apps/의 스크립트가 함께 쓴다.
 import atexit
+import fcntl
 import os
 import queue
 import shutil
@@ -303,29 +304,24 @@ def _fps(src: str) -> float:
 
 class VideoSource:
     """영상 프레임을 BGR 배열로 하나씩 돌려준다.
-    hw=True: 하드웨어 디코더(v4l2h264dec) + ARM 변환(GStreamer).
+    hw=True: 하드웨어 디코더(v4l2h264dec)가 해독하고, GStreamer가 크기를 줄여 I420으로 넘기면
+             OpenCV가 BGR로 바꾼다(색 변환은 OpenCV가 ARM NEON으로 더 빠르다).
     hw=False: OpenCV 소프트웨어 디코더(ARM)"""
 
-    def __init__(self, src: str, size=(1280, 720), hw=True, threads=4, prefetch=4):
+    def __init__(self, src: str, size=(1280, 720), hw=True, prefetch=4):
         self.w, self.h = size
         self.hw = hw and shutil.which("gst-launch-1.0") is not None
         if self.hw:
-            cmd = [
-                "gst-launch-1.0",
-                "-q",
-                *_gst_source(src),
-                "!",
-                "videoconvertscale",
-                f"n-threads={threads}",
-                "!",
-                f"video/x-raw,format=BGR,width={self.w},height={self.h}",
-                "!",
-                "fdsink",
-                "fd=1",
-            ]
-            self.proc = subprocess.Popen(
-                cmd, stdout=subprocess.PIPE, bufsize=self.w * self.h * 3 * 2
-            )
+            # 디코더 출력은 높이가 16의 배수로 늘어나 있다(1080 → 1088).
+            # videoconvert가 실제 크기로 다시 담는다
+            caps = f"video/x-raw,width={self.w},height={self.h}"
+            cmd = ["gst-launch-1.0", "-q", *_gst_source(src), "!", "videoscale", "!", caps]
+            cmd += ["!", "videoconvert", "!", "video/x-raw,format=I420", "!", "fdsink", "fd=1"]
+            self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=0)
+            try:  # 파이프를 1 MB로 늘려 GStreamer가 덜 기다리게 한다(F_SETPIPE_SZ)
+                fcntl.fcntl(self.proc.stdout.fileno(), 1031, 1 << 20)
+            except OSError:
+                pass
             atexit.register(self.proc.kill)  # 프로그램이 끝나면 GStreamer도 끝낸다
         else:
             self.cap = cv2.VideoCapture(src)
@@ -351,19 +347,21 @@ class VideoSource:
 
     def _read(self):
         if self.hw:
-            n = self.w * self.h * 3
-            buf = self.proc.stdout.read(n)
-            if len(buf) < n:
-                return None
-            return np.frombuffer(buf, np.uint8).reshape(self.h, self.w, 3)
+            # 프레임 하나(I420: 밝기 W×H + 색 W×H/2)를 미리 만든 배열에 바로 읽는다
+            yuv = np.empty((self.h * 3 // 2, self.w), np.uint8)
+            view, got = memoryview(yuv).cast("B"), 0
+            while got < len(view):
+                k = self.proc.stdout.readinto(view[got:])
+                if not k:
+                    return None
+                got += k
+            return cv2.cvtColor(yuv, cv2.COLOR_YUV2BGR_I420)
         ok, f = self.cap.read()
         if not ok:
             return None
-        return (
-            f
-            if f.shape[1] == self.w and f.shape[0] == self.h
-            else cv2.resize(f, (self.w, self.h), interpolation=cv2.INTER_AREA)
-        )
+        if f.shape[1] != self.w or f.shape[0] != self.h:
+            f = cv2.resize(f, (self.w, self.h), interpolation=cv2.INTER_AREA)
+        return f
 
     def __iter__(self):
         while (f := self.read()) is not None:
