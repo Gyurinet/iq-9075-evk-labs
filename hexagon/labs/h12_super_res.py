@@ -54,8 +54,9 @@ print(
     f" NPU {psnr(sr, img):.2f} dB"
 )
 
-# 결과: 가운데 부분을 잘라 [보통 확대 | NPU | 원본]으로 나란히
-cy, cx, s = h // 2, w // 2, min(h, w) // 4
+# 결과: 가운데 일부를 잘라 3배로 키워 [보통 확대 | NPU | 원본]으로 나란히(차이가 잘 보이게)
+cy, cx, s = h // 2, w // 2, min(h, w) // 10
 crop = [im[cy - s : cy + s, cx - s : cx + s] for im in (bicubic, sr, img)]
+crop = [cv2.resize(c, None, fx=3, fy=3, interpolation=cv2.INTER_NEAREST) for c in crop]
 cv2.imwrite(a.o, np.hstack(crop))
 print("저장:", a.o, "(왼쪽부터 보통 확대, NPU, 원본)")

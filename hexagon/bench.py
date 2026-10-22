@@ -41,12 +41,18 @@ def rjust(text, width):
 head = [("입력", 12), ("형식", 6), ("CPU 8코어", 11), ("NPU", 9), ("NPU 최고", 10), ("배율", 8)]
 print("모델" + " " * 10 + "".join(rjust(t, w) for t, w in head))
 for name in names:
-    npu = Model(name)
-    shape = "×".join(str(v) for v in npu.inputs[0]["shape"][1:3])
-    kind = "fp16" if npu.inputs[0]["dtype"] == np.float32 else "int8"
-    t_npu = avg_ms(npu)
-    t_burst = avg_ms(Model(name, perf="burst"))
-    t_cpu = avg_ms(Model(name, device="cpu", threads=8), seconds=2, at_least=3)
+    cpu = Model(name, device="cpu", threads=8)
+    dims = [int(v) for v in cpu.inputs[0]["shape"][1:]]
+    dims = [d for d in (dims[:-1] if dims[-1] in (1, 3) else dims) if d != 1]
+    shape = "×".join(map(str, dims))
+    kind = "fp16" if cpu.inputs[0]["dtype"] == np.float32 else "int8"
+    t_cpu = avg_ms(cpu, seconds=2, at_least=3)
+    try:
+        t_npu = avg_ms(Model(name))
+        t_burst = avg_ms(Model(name, perf="burst"))
+    except RuntimeError:  # NPU 델리게이트가 맡지 못하는 모델(예: 반복문이 있는 모델)
+        print(f"{name:<14}{shape:>12}{kind:>6}{t_cpu:>9.1f}ms   NPU에서 실행 못 함", flush=True)
+        continue
     print(
         f"{name:<14}{shape:>12}{kind:>6}{t_cpu:>9.1f}ms{t_npu:>7.1f}ms"
         f"{t_burst:>8.1f}ms{t_cpu / t_burst:>6.0f}배",
