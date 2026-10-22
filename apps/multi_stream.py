@@ -43,7 +43,8 @@ class Camera:
         self.hw = i < a.hw_max
         self.frame, self.got, self.done, self.dropped, self.objects = None, 0, 0, 0, 0
         self.lock = threading.Lock()
-        threading.Thread(target=self.run, daemon=True).start()
+        self.thread = threading.Thread(target=self.run, daemon=True)
+        self.thread.start()
 
     def run(self):
         while not stop.is_set():
@@ -113,6 +114,8 @@ cores = (cpu_seconds() - c0) / wall
 stop.set()
 for t in threads:  # 하던 추론을 마치고 끝낸다(NPU를 쓰는 중에 끝내면 비정상 종료)
     t.join()
+for c in cams:  # 카메라도 받던 프레임을 마치고 디코더를 닫는다
+    c.thread.join(timeout=10)
 
 got = sum(c.got for c in cams)
 done = sum(c.done for c in cams)

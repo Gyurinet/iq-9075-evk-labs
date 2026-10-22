@@ -330,15 +330,21 @@ class VideoSource:
                 raise SystemExit(f"영상을 열 수 없습니다: {src}")
         self.fps = _fps(src)
         # prefetch > 0: 뒤에서 미리 읽어 둔다(해독·변환이 추론과 겹친다)
-        self.queue = None
+        self.queue, self.filler, self.stopping = None, None, False
         if prefetch:
             self.queue = queue.Queue(prefetch)
-            threading.Thread(target=self._fill, daemon=True).start()
+            self.filler = threading.Thread(target=self._fill, daemon=True)
+            self.filler.start()
 
     def _fill(self):
-        while True:
+        while not self.stopping:
             f = self._read()
-            self.queue.put(f)
+            while not self.stopping:  # 가득 차 있으면 자리가 날 때까지(끝낼 때는 그만)
+                try:
+                    self.queue.put(f, timeout=0.1)
+                    break
+                except queue.Full:
+                    pass
             if f is None:
                 return
 
@@ -369,10 +375,14 @@ class VideoSource:
             yield f
 
     def close(self):
+        # 미리 읽는 스레드를 먼저 멈춘다(읽는 도중에 디코더를 닫으면 비정상 종료한다)
+        self.stopping = True
         if self.hw:
             self.proc.kill()
             self.proc.wait()
-        else:
+        if self.filler:
+            self.filler.join(timeout=5)
+        if not self.hw:
             self.cap.release()
 
 
