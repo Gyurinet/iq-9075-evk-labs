@@ -7,3 +7,8 @@ snapshots/
 !samples/videos/*.mp4
 people.csv
 ppe_out/
+text.csv
+text_out/
+sorted.csv
+sounds.csv
+sorted/

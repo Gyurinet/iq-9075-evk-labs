@@ -31,6 +31,12 @@ FILES = {
     "ffnet": "ffnet_40s-tflite-w8a8/ffnet_40s.tflite",
     "depth": "depth_anything_v2-tflite-float/depth_anything_v2.tflite",
     "clip": "openai_clip-tflite-float/openai_clip.tflite",
+    "pose": "hrnet_pose-tflite-w8a8/hrnet_pose.tflite",
+    "deeplab": "deeplabv3_plus_mobilenet-tflite-w8a8/deeplabv3_plus_mobilenet.tflite",
+    "sr": "xlsr-tflite-w8a8/xlsr.tflite",
+    "sound": "yamnet-tflite-float/yamnet.tflite",
+    "ocr-det": "easyocr-tflite-w8a8/detector.tflite",
+    "ocr-rec": "easyocr-tflite-float/recognizer.tflite",
 }
 
 

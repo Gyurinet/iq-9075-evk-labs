@@ -29,10 +29,21 @@ python3 hexagon/labs/h01_hello_npu.py
 | | `h03_cpu_vs_npu.py` | 같은 모델을 ARM CPU와 NPU(HTP 1개·2개)에서 비교 |
 | | `h04_detect.py`, `h05_pipeline.py` | 객체 검출, 영상의 단계별 시간과 겹쳐 처리 |
 | | `h06_people.py` ~ `h08_depth.py` | 사람·얼굴, 도로 장면 분할, 깊이 추정 |
+| | `h09_quant.py` | 양자화 들여다보기(실수 모델과 8비트 모델) |
+| | `h10_pose.py` | 두 단계 모델로 자세 추정(사람 찾기 → 관절) |
+| | `h11_two_models.py` | 서로 다른 모델 두 개를 HTP 2개에 나눠 동시에 |
+| | `h12_super_res.py` | 화질 높이기(초해상도) |
 | `hexagon/apps/` | `ppe_check.py` | 안전모·안전 조끼 착용 점검 |
 | | `people_counter.py` | 가상의 선을 지나는 사람 세기 |
+| | `zone_guard.py` | 구역 진입·체류 감시와 기록 |
 | | `privacy_blur.py` | 영상 속 얼굴 가리기 |
+| | `cutout.py` | 사람 오려내기(배경 흐리기·바꾸기, 사람 전체 가리기) |
 | | `photo_search.py` | 영어 문장·사진으로 사진 찾기(CLIP) |
+| | `sort_photos.py` | 학습 없이 사진 나누기(CLIP) |
+| | `read_text.py` | 글자 읽기(OCR: 검출은 NPU, 인식은 ARM CPU) |
+| | `sound_watch.py` | 소리 감시(사이렌·경보·경적 등 AudioSet 521종) |
+| | `infer_server.py` | 사내 추론 서버(HTTP, `apps/infer_client.py`로 호출) |
+| | `multi_camera.py` | 여러 카메라 동시 처리 |
 | `hexagon/` | `qnpu.py`, `clip_tokenizer.py` | 공용 도구(모델 실행, 후처리), CLIP 글 토크나이저 |
 | | `get-models.sh`, `bench.py`, `soak.py`, `temps.sh` | 모델 내려받기, 성능 표, 오래 돌리기 시험, 온도 |
 
@@ -70,7 +81,7 @@ python3 labs/01_hello_npu.py
 | | `multi_stream.py` | 여러 카메라 동시 처리 |
 | `tools/` | `get-models.sh`, `bench.sh` | 모델 내려받기, 모델별 성능 표 |
 | `labkit.py` | | 공용 도구(전처리, YOLO 후처리, 영상 입출력, 추적기) |
-| `samples/` | | 예제 사진·영상(퍼블릭 도메인·CC0, 출처는 `samples/SOURCES.md`) |
+| `samples/` | | 예제 사진·영상·소리(퍼블릭 도메인·CC0, 출처는 `samples/SOURCES.md`) |
 
 ## 모델과 라이선스
 

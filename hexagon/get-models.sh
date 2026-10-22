@@ -10,7 +10,8 @@ mkdir -p "$DIR"
 cd "$DIR"
 # 모델 이름:정밀도. w8a8 = 8비트 정수(양자화), float = 실수(NPU에서는 fp16으로 실행)
 MODELS="resnet50:w8a8 resnet50:float mobilenet_v2:w8a8 yolox:w8a8 foot_track_net:w8a8
-gear_guard_net:w8a8 ffnet_40s:w8a8 depth_anything_v2:float openai_clip:float"
+gear_guard_net:w8a8 ffnet_40s:w8a8 depth_anything_v2:float openai_clip:float
+hrnet_pose:w8a8 deeplabv3_plus_mobilenet:w8a8 xlsr:w8a8 yamnet:float easyocr:w8a8 easyocr:float"
 for spec in $MODELS; do
   m=${spec%%:*}
   p=${spec##*:}
@@ -20,5 +21,7 @@ for spec in $MODELS; do
   unzip -q -o "$m-tflite-$p.zip"
   rm "$m-tflite-$p.zip"
 done
+# 글자 읽기는 8비트 검출기(NPU)와 실수 인식기(ARM CPU)를 쓰므로 실수 검출기는 지운다
+rm -f easyocr-tflite-float/detector.tflite
 echo "모델 폴더: $DIR"
 du -sh "$DIR"/*-tflite-* | sed "s|$DIR/||"
