@@ -47,6 +47,7 @@ class Camera:
         self.thread.start()
 
     def run(self):
+        live = self.src.startswith(("rtsp://", "/dev/video"))
         while not stop.is_set():
             video = VideoSource(self.src, (W, H), hw=self.hw, prefetch=2)
             t0, k = time.perf_counter(), 0
@@ -54,8 +55,10 @@ class Camera:
                 if stop.is_set():
                     break
                 k += 1
-                # 실제 카메라 속도로
-                time.sleep(max(0.0, t0 + k / video.fps - time.perf_counter()))
+                if live:  # 카메라는 스스로 제 속도로 보낸다
+                    pass
+                else:  # 영상 파일은 실제 카메라 속도로 맞춰 읽는다
+                    time.sleep(max(0.0, t0 + k / video.fps - time.perf_counter()))
                 with self.lock:
                     if self.frame is not None:
                         self.dropped += 1  # 처리 전에 다음 프레임이 왔다

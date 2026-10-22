@@ -11,94 +11,32 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 
-import cv2
-import numpy as np
+# OpenCV(FFmpeg)로 RTSP 카메라를 받을 때: TCP로 받고(패킷 손실이 적다), 해독 경고는 줄인다.
+# 스트림 중간부터 받으면 처음 몇 장에서 참조 프레임이 없다는 경고가 나오는데 해롭지 않다
+os.environ.setdefault("OPENCV_FFMPEG_CAPTURE_OPTIONS", "rtsp_transport;tcp")
+os.environ.setdefault("OPENCV_FFMPEG_LOGLEVEL", "-8")
+
+import cv2  # noqa: E402
+import numpy as np  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent
 MODELS = Path(os.environ.get("NPU_MODELS", Path.home() / "npu-models"))
 
+# fmt: off
 COCO = [
-    "person",
-    "bicycle",
-    "car",
-    "motorcycle",
-    "airplane",
-    "bus",
-    "train",
-    "truck",
-    "boat",
-    "traffic light",
-    "fire hydrant",
-    "stop sign",
-    "parking meter",
-    "bench",
-    "bird",
-    "cat",
-    "dog",
-    "horse",
-    "sheep",
-    "cow",
-    "elephant",
-    "bear",
-    "zebra",
-    "giraffe",
-    "backpack",
-    "umbrella",
-    "handbag",
-    "tie",
-    "suitcase",
-    "frisbee",
-    "skis",
-    "snowboard",
-    "sports ball",
-    "kite",
-    "baseball bat",
-    "baseball glove",
-    "skateboard",
-    "surfboard",
-    "tennis racket",
-    "bottle",
-    "wine glass",
-    "cup",
-    "fork",
-    "knife",
-    "spoon",
-    "bowl",
-    "banana",
-    "apple",
-    "sandwich",
-    "orange",
-    "broccoli",
-    "carrot",
-    "hot dog",
-    "pizza",
-    "donut",
-    "cake",
-    "chair",
-    "couch",
-    "potted plant",
-    "bed",
-    "dining table",
-    "toilet",
-    "tv",
-    "laptop",
-    "mouse",
-    "remote",
-    "keyboard",
-    "cell phone",
-    "microwave",
-    "oven",
-    "toaster",
-    "sink",
-    "refrigerator",
-    "book",
-    "clock",
-    "vase",
-    "scissors",
-    "teddy bear",
-    "hair drier",
-    "toothbrush",
+    "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat",
+    "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat",
+    "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack",
+    "umbrella", "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball",
+    "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket",
+    "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple",
+    "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair",
+    "couch", "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse",
+    "remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink",
+    "refrigerator", "book", "clock", "vase", "scissors", "teddy bear", "hair drier",
+    "toothbrush"
 ]
+# fmt: on
 
 
 def model(name: str) -> str:
@@ -172,26 +110,14 @@ def yolo26_decode(pred, r, off, conf=0.25, classes=None):
     return np.column_stack([unletter(p[:, :4], r, off), p[:, 4:6]]).astype(np.float32)
 
 
+# fmt: off
 PALETTE = [
-    (56, 56, 255),
-    (151, 157, 255),
-    (31, 112, 255),
-    (29, 178, 255),
-    (49, 210, 207),
-    (10, 249, 72),
-    (23, 204, 146),
-    (134, 219, 61),
-    (52, 147, 26),
-    (187, 212, 0),
-    (168, 153, 44),
-    (255, 194, 0),
-    (147, 69, 52),
-    (255, 115, 100),
-    (236, 24, 0),
-    (255, 56, 132),
-    (133, 0, 82),
-    (255, 56, 203),
+    (56, 56, 255), (151, 157, 255), (31, 112, 255), (29, 178, 255), (49, 210, 207),
+    (10, 249, 72), (23, 204, 146), (134, 219, 61), (52, 147, 26), (187, 212, 0),
+    (168, 153, 44), (255, 194, 0), (147, 69, 52), (255, 115, 100), (236, 24, 0),
+    (255, 56, 132), (133, 0, 82), (255, 56, 203)
 ]
+# fmt: on
 
 
 def color(i: int):
