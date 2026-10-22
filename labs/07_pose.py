@@ -11,27 +11,10 @@ from labkit import letterbox, model, to_npu
 from dx_engine import InferenceEngine
 
 # COCO 관절 연결(코·눈·귀, 어깨·팔, 엉덩이·다리)
-LINKS = [
-    (15, 13),
-    (13, 11),
-    (16, 14),
-    (14, 12),
-    (11, 12),
-    (5, 11),
-    (6, 12),
-    (5, 6),
-    (5, 7),
-    (6, 8),
-    (7, 9),
-    (8, 10),
-    (1, 2),
-    (0, 1),
-    (0, 2),
-    (1, 3),
-    (2, 4),
-    (3, 5),
-    (4, 6),
-]
+# fmt: off
+LINKS = [(15, 13), (13, 11), (16, 14), (14, 12), (11, 12), (5, 11), (6, 12), (5, 6), (5, 7),
+         (6, 8), (7, 9), (8, 10), (1, 2), (0, 1), (0, 2), (1, 3), (2, 4), (3, 5), (4, 6)]
+# fmt: on
 
 path = sys.argv[1]
 out = sys.argv[sys.argv.index("-o") + 1] if "-o" in sys.argv else "pose.jpg"
@@ -44,7 +27,8 @@ keep = p[:, 4] >= 0.4
 p = p[keep]
 xywh = p[:, :4].copy()
 xywh[:, :2] -= xywh[:, 2:] / 2
-idx = np.array(cv2.dnn.NMSBoxes(xywh.tolist(), p[:, 4].tolist(), 0.4, 0.45), int).reshape(-1)
+idx = cv2.dnn.NMSBoxes(xywh.tolist(), p[:, 4].tolist(), 0.4, 0.45)
+idx = np.array(idx, int).reshape(-1)
 
 t = max(2, round(min(img.shape[:2]) / 300))
 for i in idx:
