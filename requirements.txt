@@ -1,0 +1,4 @@
+# 검증한 버전(Python 3.12, aarch64). dx_engine은 /usr/share/libdxrt-bin/python/ 의 파일로 따로 설치한다
+numpy==2.5.4
+opencv-python-headless==5.0.0.93
+onnxruntime==1.31.0

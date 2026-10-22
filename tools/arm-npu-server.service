@@ -1,0 +1,18 @@
+# 사내 추론 서버를 시스템 서비스로 등록한다(부팅할 때 자동 시작, 멈추면 다시 시작)
+#   sudo cp tools/arm-npu-server.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now arm-npu-server
+# 계정이나 경로가 다르면 User, WorkingDirectory, ExecStart를 고친다.
+[Unit]
+Description=ARM + NPU inference server (arm-npu-labs)
+After=network-online.target dxrt.service
+Requires=dxrt.service
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/arm-npu-labs
+ExecStart=/home/ubuntu/npu-venv/bin/python apps/infer_server.py --port 8080
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

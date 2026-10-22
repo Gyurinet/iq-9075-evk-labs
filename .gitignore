@@ -1,0 +1,7 @@
+__pycache__/
+*.npz
+counts.csv
+events.csv
+snapshots/
+*.mp4
+!samples/videos/*.mp4
