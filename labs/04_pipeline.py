@@ -6,8 +6,18 @@ from collections import deque
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from labkit import (Stopwatch, VideoSource, VideoWriter, cpu_seconds, draw_boxes, letterbox, model, to_npu,
-                    yolo11_decode, yolo26_decode)
+from labkit import (
+    Stopwatch,
+    VideoSource,
+    VideoWriter,
+    cpu_seconds,
+    draw_boxes,
+    letterbox,
+    model,
+    to_npu,
+    yolo11_decode,
+    yolo26_decode,
+)
 from dx_engine import InferenceEngine
 
 args = [a for a in sys.argv[1:] if not a.startswith("--")]
@@ -17,19 +27,21 @@ save = sys.argv[sys.argv.index("--save") + 1] if "--save" in sys.argv else None
 if save in args:
     args.remove(save)
 decode = yolo11_decode if kind == "yolo11n" else yolo26_decode
-ie = InferenceEngine(model({"yolo11n": "yolo11-n_640x640.dxnn", "yolo26n": "yolo26-n_640x640.dxnn"}[kind]))
+ie = InferenceEngine(
+    model({"yolo11n": "yolo11-n_640x640.dxnn", "yolo26n": "yolo26-n_640x640.dxnn"}[kind])
+)
 SIZE = (1280, 720)
 
 
 def pre(frame):
-    x, r, off = letterbox(frame, 640)                    # ARM: 640×640에 맞추기
+    x, r, off = letterbox(frame, 640)  # ARM: 640×640에 맞추기
     return to_npu(x), r, off
 
 
 # ① 한 장씩 차례로: 해독 → 전처리 → NPU → 후처리 → 그리기
 print(f"[1] 한 장씩 차례로 처리 ({kind})")
 sw = Stopwatch()
-video = VideoSource(src, SIZE, prefetch=0)                 # 미리 읽지 않는다(해독도 차례로)
+video = VideoSource(src, SIZE, prefetch=0)  # 미리 읽지 않는다(해독도 차례로)
 n = 0
 c0, t0 = cpu_seconds(), time.perf_counter()
 while True:
@@ -49,7 +61,10 @@ while True:
 wall = time.perf_counter() - t0
 video.close()
 sw.report(skip=5)
-print(f"  실제 {n}장 {wall:.1f}초 → {n / wall:.1f} FPS, 장비 CPU {(cpu_seconds() - c0) / wall:.2f}코어\n")
+print(
+    f"  실제 {n}장 {wall:.1f}초 → {n / wall:.1f} FPS, "
+    f"CPU {(cpu_seconds() - c0) / wall:.2f}코어\n"
+)
 
 # ② 겹쳐 처리: NPU가 앞 프레임을 계산하는 동안 ARM은 다음 프레임을 준비하고 지난 결과를 정리한다
 print(f"[2] 단계를 겹쳐 처리(요청 {4}개까지 동시에)")
@@ -62,7 +77,7 @@ n, total = 0, 0
 def finish(job):
     global total
     jid, frame, r, off = job
-    dets = decode(ie.wait(jid)[0], r, off)               # NPU 결과를 받아 ARM이 후처리
+    dets = decode(ie.wait(jid)[0], r, off)  # NPU 결과를 받아 ARM이 후처리
     total += len(dets)
     img = draw_boxes(frame.copy(), dets)
     if out_video:
@@ -72,7 +87,7 @@ def finish(job):
 c0, t0 = cpu_seconds(), time.perf_counter()
 for frame in video:
     x, r, off = pre(frame)
-    jobs.append((ie.run_async([x]), frame, r, off))      # NPU에 맡기고 바로 다음 프레임으로
+    jobs.append((ie.run_async([x]), frame, r, off))  # NPU에 맡기고 바로 다음 프레임으로
     n += 1
     if len(jobs) >= 4:
         finish(jobs.popleft())
@@ -82,6 +97,9 @@ wall = time.perf_counter() - t0
 video.close()
 if out_video:
     out_video.close()
-print(f"  실제 {n}장 {wall:.1f}초 → {n / wall:.1f} FPS, 장비 CPU {(cpu_seconds() - c0) / wall:.2f}코어, 검출 {total / n:.1f}개/장")
+print(
+    f"  실제 {n}장 {wall:.1f}초 → {n / wall:.1f} FPS, "
+    f"CPU {(cpu_seconds() - c0) / wall:.2f}코어, 검출 {total / n:.1f}개/장"
+)
 if save:
     print(f"  결과 영상: {save}")

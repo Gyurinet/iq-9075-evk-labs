@@ -1,8 +1,9 @@
 # 구역 감시: 정해 둔 구역(작업 구역, 출입문 앞 등)에 사람이 들어오거나 오래 머물면 기록한다
-#   python3 apps/zone_guard.py samples/videos/pedestrians.mp4 --zone 0.42,0.62,0.78,0.62,0.86,1.0,0.34,1.0 --save zone.mp4
+#   python3 apps/zone_guard.py samples/videos/pedestrians.mp4 --save zone.mp4
 #   --zone x1,y1,x2,y2,… : 구역 꼭짓점(화면 폭·높이에 대한 비율 0~1, 시계 방향)
 #   --dwell 초          : 이보다 오래 머물면 '체류'로 기록(기본 3초)
-#   --min-stay 초       : 이만큼 머물러야 '진입'으로 본다(구역 끝을 스치거나 잠깐 잘못 검출된 것 제외, 기본 0.3초)
+#   --min-stay 초       : 이만큼 머물러야 '진입'으로 본다(기본 0.3초).
+#                         구역 끝을 스치거나 잠깐 잘못 검출된 것을 뺀다
 #   결과: 사건 기록 events.csv, 들어온 순간 사진 snapshots/, 화면 표시 영상(--save)
 import argparse
 import csv
@@ -15,7 +16,17 @@ import cv2
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from labkit import COCO, Tracker, VideoSource, VideoWriter, letterbox, model, put_text, to_npu, yolo26_decode
+from labkit import (
+    COCO,
+    Tracker,
+    VideoSource,
+    VideoWriter,
+    letterbox,
+    model,
+    put_text,
+    to_npu,
+    yolo26_decode,
+)
 from dx_engine import InferenceEngine
 
 ap = argparse.ArgumentParser()
@@ -40,10 +51,10 @@ ie = InferenceEngine(model("yolo26-n_640x640.dxnn"))
 video = VideoSource(a.video, (W, H))
 out = VideoWriter(a.save, (W, H), video.fps) if a.save else None
 tracker = Tracker()
-inside = {}                                                # 트랙 ID → [들어온 시각, 마지막으로 본 시각, 진입 확정](초)
-GONE = 0.5                                                 # 이만큼 안 보이면 나간 것으로 본다(검출이 한두 장 빠져도 괜찮게)
+inside = {}  # 트랙 ID → [들어온 시각, 마지막으로 본 시각, 진입 확정](초)
+GONE = 0.5  # 이만큼 안 보이면 나간 것으로 본다(검출이 한두 장 빠져도 괜찮게)
 dwelled = set()
-log = []                                                   # (시각, 사건, ID, 분류, 머문 시간)
+log = []  # (시각, 사건, ID, 분류, 머문 시간)
 
 
 def handle(frame, dets, idx):
@@ -51,7 +62,7 @@ def handle(frame, dets, idx):
     seen = set()
     for tr in tracker.update(dets):
         foot = tr.foot()
-        if cv2.pointPolygonTest(zone, foot, False) < 0:    # 발이 구역 밖
+        if cv2.pointPolygonTest(zone, foot, False) < 0:  # 발이 구역 밖
             continue
         if tr.id not in inside:
             inside[tr.id] = [now, now, False]
@@ -81,7 +92,13 @@ def handle(frame, dets, idx):
         cv2.fillPoly(layer, [zone], (0, 0, 255) if seen else (0, 200, 0))
         frame = cv2.addWeighted(layer, 0.25, frame, 0.75, 0)
         cv2.polylines(frame, [zone], True, (0, 0, 255) if seen else (0, 200, 0), 3)
-        put_text(frame, f"t={now:5.1f}s  in zone: {len(seen)}  events: {sum(1 for e in log if e[1] == 'enter')}", (16, 36), 0.8)
+        put_text(
+            frame,
+            f"t={now:5.1f}s  in zone: {len(seen)}  "
+            f"events: {sum(1 for e in log if e[1] == 'enter')}",
+            (16, 36),
+            0.8,
+        )
         out.write(frame)
 
 
@@ -110,4 +127,7 @@ with open(a.events, "w", newline="") as fp:
         w.writerow([f"{t:.2f}", e, tid, c, f"{s:.1f}"])
 enters = [e for e in log if e[1] == "enter"]
 print(f"{n}프레임을 {wall:.1f}초에 처리: {n / wall:.1f} FPS")
-print(f"구역 진입 {len(enters)}건, {a.dwell:g}초 넘게 머묾 {len(dwelled)}건 → {a.events}, 사진 {a.snapshots}/")
+print(
+    f"구역 진입 {len(enters)}건, {a.dwell:g}초 넘게 머묾 {len(dwelled)}건 "
+    f"→ {a.events}, 사진 {a.snapshots}/"
+)

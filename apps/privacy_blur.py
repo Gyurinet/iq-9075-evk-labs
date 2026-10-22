@@ -26,7 +26,8 @@ ie = InferenceEngine(model("yolov5-s-face_640x640.dxnn"))
 
 
 def faces(pred, r, off):
-    """YOLOv5-face 출력 [25200, 16] (cx, cy, w, h, 물체 점수, 눈·코·입 5점, 얼굴 점수) → 얼굴 상자"""
+    """YOLOv5-face 출력 [25200, 16] → 얼굴 상자
+    (cx, cy, w, h, 물체 점수, 눈·코·입 5점의 x·y, 얼굴 점수)"""
     p = pred.reshape(-1, 16)
     score = p[:, 4] * p[:, 15]
     p, score = p[score >= a.conf], score[score >= a.conf]
@@ -34,7 +35,9 @@ def faces(pred, r, off):
         return np.zeros((0, 4))
     xywh = p[:, :4].copy()
     xywh[:, :2] -= xywh[:, 2:] / 2
-    idx = np.array(cv2.dnn.NMSBoxes(xywh.tolist(), score.tolist(), a.conf, 0.4), int).reshape(-1)
+    idx = np.array(cv2.dnn.NMSBoxes(xywh.tolist(), score.tolist(), a.conf, 0.4), int).reshape(
+        -1
+    )
     b = xywh[idx]
     b[:, 2:] += b[:, :2]
     return unletter(b, r, off)
@@ -50,8 +53,14 @@ def blur(img, boxes):
         if x2 - x1 < 2 or y2 - y1 < 2:
             continue
         roi = img[y1:y2, x1:x2]
-        small = cv2.resize(roi, (max(1, (x2 - x1) // 12), max(1, (y2 - y1) // 12)), interpolation=cv2.INTER_AREA)
-        img[y1:y2, x1:x2] = cv2.GaussianBlur(cv2.resize(small, (x2 - x1, y2 - y1), interpolation=cv2.INTER_NEAREST), (0, 0), 3)
+        small = cv2.resize(
+            roi,
+            (max(1, (x2 - x1) // 12), max(1, (y2 - y1) // 12)),
+            interpolation=cv2.INTER_AREA,
+        )
+        img[y1:y2, x1:x2] = cv2.GaussianBlur(
+            cv2.resize(small, (x2 - x1, y2 - y1), interpolation=cv2.INTER_NEAREST), (0, 0), 3
+        )
         if a.show:
             cv2.rectangle(img, (x1, y1), (x2, y2), (0, 220, 255), 2)
     return img
@@ -92,4 +101,7 @@ while jobs:
 wall = time.perf_counter() - t0
 video.close()
 out.close()
-print(f"{n}프레임을 {wall:.1f}초에 처리: {n / wall:.1f} FPS, 프레임당 얼굴 {total / n:.1f}개 → {a.save or 'blurred.mp4'}")
+print(
+    f"{n}프레임을 {wall:.1f}초에 처리: {n / wall:.1f} FPS, "
+    f"프레임당 얼굴 {total / n:.1f}개 → {a.save or 'blurred.mp4'}"
+)

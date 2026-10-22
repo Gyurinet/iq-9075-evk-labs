@@ -16,15 +16,88 @@ import numpy as np
 ROOT = Path(__file__).resolve().parent
 MODELS = Path(os.environ.get("NPU_MODELS", Path.home() / "npu-models"))
 
-COCO = ["person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat", "traffic light",
-        "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow",
-        "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella", "handbag", "tie", "suitcase", "frisbee",
-        "skis", "snowboard", "sports ball", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard",
-        "tennis racket", "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple",
-        "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "couch",
-        "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse", "remote", "keyboard", "cell phone",
-        "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors", "teddy bear",
-        "hair drier", "toothbrush"]
+COCO = [
+    "person",
+    "bicycle",
+    "car",
+    "motorcycle",
+    "airplane",
+    "bus",
+    "train",
+    "truck",
+    "boat",
+    "traffic light",
+    "fire hydrant",
+    "stop sign",
+    "parking meter",
+    "bench",
+    "bird",
+    "cat",
+    "dog",
+    "horse",
+    "sheep",
+    "cow",
+    "elephant",
+    "bear",
+    "zebra",
+    "giraffe",
+    "backpack",
+    "umbrella",
+    "handbag",
+    "tie",
+    "suitcase",
+    "frisbee",
+    "skis",
+    "snowboard",
+    "sports ball",
+    "kite",
+    "baseball bat",
+    "baseball glove",
+    "skateboard",
+    "surfboard",
+    "tennis racket",
+    "bottle",
+    "wine glass",
+    "cup",
+    "fork",
+    "knife",
+    "spoon",
+    "bowl",
+    "banana",
+    "apple",
+    "sandwich",
+    "orange",
+    "broccoli",
+    "carrot",
+    "hot dog",
+    "pizza",
+    "donut",
+    "cake",
+    "chair",
+    "couch",
+    "potted plant",
+    "bed",
+    "dining table",
+    "toilet",
+    "tv",
+    "laptop",
+    "mouse",
+    "remote",
+    "keyboard",
+    "cell phone",
+    "microwave",
+    "oven",
+    "toaster",
+    "sink",
+    "refrigerator",
+    "book",
+    "clock",
+    "vase",
+    "scissors",
+    "teddy bear",
+    "hair drier",
+    "toothbrush",
+]
 
 
 def model(name: str) -> str:
@@ -40,13 +113,16 @@ def imagenet_labels() -> list[str]:
 
 
 def letterbox(img, size=640, pad=114):
-    """비율을 지키며 size×size에 맞추고 남는 곳을 회색으로 채운다. (결과, 배율, (왼쪽, 위) 여백)"""
+    """비율을 지키며 size×size에 맞추고 남는 곳을 회색으로 채운다.
+    돌려주는 값: (결과, 배율, (왼쪽, 위) 여백)"""
     h, w = img.shape[:2]
     r = min(size / h, size / w)
     nh, nw = round(h * r), round(w * r)
     top, left = (size - nh) // 2, (size - nw) // 2
     out = np.full((size, size, 3), pad, np.uint8)
-    out[top:top + nh, left:left + nw] = cv2.resize(img, (nw, nh), interpolation=cv2.INTER_LINEAR)
+    out[top : top + nh, left : left + nw] = cv2.resize(
+        img, (nw, nh), interpolation=cv2.INTER_LINEAR
+    )
     return out, r, (left, top)
 
 
@@ -64,8 +140,9 @@ def unletter(boxes, r, off):
 
 
 def yolo11_decode(pred, r, off, conf=0.25, iou=0.45, classes=None):
-    """YOLO11 출력 [84, 8400] → [[x1, y1, x2, y2, 점수, 분류], ...]. NMS(겹친 상자 정리)를 ARM에서 한다"""
-    p = pred.reshape(pred.shape[-2], -1).T                  # [8400, 84]
+    """YOLO11 출력 [84, 8400] → [[x1, y1, x2, y2, 점수, 분류], ...].
+    NMS(겹친 상자 정리)를 ARM에서 한다"""
+    p = pred.reshape(pred.shape[-2], -1).T  # [8400, 84]
     cls = p[:, 4:].argmax(1)
     score = p[np.arange(len(p)), 4 + cls]
     keep = score >= conf
@@ -75,15 +152,18 @@ def yolo11_decode(pred, r, off, conf=0.25, iou=0.45, classes=None):
     if not len(p):
         return np.zeros((0, 6), np.float32)
     xywh = p[:, :4].copy()
-    xywh[:, :2] -= xywh[:, 2:] / 2                          # 가운데 → 왼쪽 위
-    idx = np.array(cv2.dnn.NMSBoxesBatched(xywh.tolist(), score.tolist(), cls.tolist(), conf, iou), int).reshape(-1)
+    xywh[:, :2] -= xywh[:, 2:] / 2  # 가운데 → 왼쪽 위
+    idx = np.array(
+        cv2.dnn.NMSBoxesBatched(xywh.tolist(), score.tolist(), cls.tolist(), conf, iou), int
+    ).reshape(-1)
     b = xywh[idx]
     b[:, 2:] += b[:, :2]
     return np.column_stack([unletter(b, r, off), score[idx], cls[idx]]).astype(np.float32)
 
 
 def yolo26_decode(pred, r, off, conf=0.25, classes=None):
-    """YOLO26 출력 [300, 6](x1, y1, x2, y2, 점수, 분류) → 같은 형식. 모델이 상자를 이미 정리해 NMS가 없다"""
+    """YOLO26 출력 [300, 6](x1, y1, x2, y2, 점수, 분류) → 같은 형식.
+    모델이 상자를 이미 정리해 NMS가 없다"""
     p = pred.reshape(-1, 6)
     keep = p[:, 4] >= conf
     if classes is not None:
@@ -92,9 +172,26 @@ def yolo26_decode(pred, r, off, conf=0.25, classes=None):
     return np.column_stack([unletter(p[:, :4], r, off), p[:, 4:6]]).astype(np.float32)
 
 
-PALETTE = [(56, 56, 255), (151, 157, 255), (31, 112, 255), (29, 178, 255), (49, 210, 207), (10, 249, 72),
-           (23, 204, 146), (134, 219, 61), (52, 147, 26), (187, 212, 0), (168, 153, 44), (255, 194, 0),
-           (147, 69, 52), (255, 115, 100), (236, 24, 0), (255, 56, 132), (133, 0, 82), (255, 56, 203)]
+PALETTE = [
+    (56, 56, 255),
+    (151, 157, 255),
+    (31, 112, 255),
+    (29, 178, 255),
+    (49, 210, 207),
+    (10, 249, 72),
+    (23, 204, 146),
+    (134, 219, 61),
+    (52, 147, 26),
+    (187, 212, 0),
+    (168, 153, 44),
+    (255, 194, 0),
+    (147, 69, 52),
+    (255, 115, 100),
+    (236, 24, 0),
+    (255, 56, 132),
+    (133, 0, 82),
+    (255, 56, 203),
+]
 
 
 def color(i: int):
@@ -113,7 +210,16 @@ def draw_boxes(img, dets, names=COCO, thick=None):
         (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, fs, max(1, t // 2))
         y = max(p1[1], th + 4)
         cv2.rectangle(img, (p1[0], y - th - 4), (p1[0] + tw + 4, y), color(c), -1)
-        cv2.putText(img, label, (p1[0] + 2, y - 3), cv2.FONT_HERSHEY_SIMPLEX, fs, (255, 255, 255), max(1, t // 2), cv2.LINE_AA)
+        cv2.putText(
+            img,
+            label,
+            (p1[0] + 2, y - 3),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            fs,
+            (255, 255, 255),
+            max(1, t // 2),
+            cv2.LINE_AA,
+        )
     return img
 
 
@@ -136,24 +242,47 @@ class Stopwatch:
             v = v[skip:] or v
             rows.append((k, float(np.mean(v)), len(v)))
         total = sum(m for _, m, _ in rows)
-        for k, m, n in rows:
+        for k, m, _ in rows:
             print(f"  {k:<10} {m:8.2f} ms  ({m / total * 100:4.1f}%)")
         print(f"  {'합계':<10} {total:8.2f} ms  → 한 장씩 처리하면 {1000 / total:.1f} FPS")
         return dict((k, m) for k, m, _ in rows)
 
 
 def cpu_seconds():
-    """장비 전체 CPU가 지금까지 일한 시간(초, 모든 코어 합). 다른 프로세스(GStreamer, NPU 서비스)도 포함한다"""
-    v = [int(x) for x in open("/proc/stat").readline().split()[1:]]
-    busy = sum(v) - v[3] - v[4]                         # idle, iowait 제외
-    return busy / os.sysconf("SC_CLK_TCK")
+    """이 프로그램(모든 스레드)과 하위 프로세스(GStreamer)가 지금까지 쓴 CPU 시간.
+    단위는 초이며 모든 코어를 더한 값이다. 다른 프로그램이 함께 돌아도 영향을 받지 않는다"""
+    t = os.times()
+    total = t.user + t.system + t.children_user + t.children_system
+    tick = os.sysconf("SC_CLK_TCK")
+    for task in Path("/proc/self/task").iterdir():  # 아직 실행 중인 하위 프로세스
+        try:
+            kids = (task / "children").read_text().split()
+        except OSError:
+            continue
+        for pid in kids:
+            try:
+                f = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()
+                total += (int(f[11]) + int(f[12])) / tick  # utime, stime
+            except (OSError, IndexError):
+                pass
+    return total
 
 
 # ───── 영상 입출력: 해독·인코딩은 SoC의 하드웨어 코덱(V4L2)이, 크기·색 변환은 ARM이 한다 ─────
 def _gst_source(src: str) -> list[str]:
     """입력 주소 → GStreamer 앞부분(파일 mp4, RTSP 카메라, USB 카메라)"""
     if src.startswith("rtsp://"):
-        return ["rtspsrc", f"location={src}", "latency=200", "!", "rtph264depay", "!", "h264parse", "!", *_HWDEC]
+        return [
+            "rtspsrc",
+            f"location={src}",
+            "latency=200",
+            "!",
+            "rtph264depay",
+            "!",
+            "h264parse",
+            "!",
+            *_HWDEC,
+        ]
     if src.startswith("/dev/video"):
         return ["v4l2src", f"device={src}"]
     return ["filesrc", f"location={src}", "!", "qtdemux", "!", "h264parse", "!", *_HWDEC]
@@ -175,16 +304,30 @@ def _fps(src: str) -> float:
 
 class VideoSource:
     """영상 프레임을 BGR 배열로 하나씩 돌려준다.
-    hw=True: 하드웨어 디코더(v4l2h264dec) + ARM 변환(GStreamer). hw=False: OpenCV 소프트웨어 디코더(ARM)"""
+    hw=True: 하드웨어 디코더(v4l2h264dec) + ARM 변환(GStreamer).
+    hw=False: OpenCV 소프트웨어 디코더(ARM)"""
 
     def __init__(self, src: str, size=(1280, 720), hw=True, threads=4, prefetch=4):
         self.w, self.h = size
         self.hw = hw and shutil.which("gst-launch-1.0") is not None
         if self.hw:
-            cmd = ["gst-launch-1.0", "-q", *_gst_source(src), "!", "videoconvertscale", f"n-threads={threads}", "!",
-                   f"video/x-raw,format=BGR,width={self.w},height={self.h}", "!", "fdsink", "fd=1"]
-            self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=self.w * self.h * 3 * 2)
-            atexit.register(self.proc.kill)                   # 프로그램이 끝나면 GStreamer도 끝낸다
+            cmd = [
+                "gst-launch-1.0",
+                "-q",
+                *_gst_source(src),
+                "!",
+                "videoconvertscale",
+                f"n-threads={threads}",
+                "!",
+                f"video/x-raw,format=BGR,width={self.w},height={self.h}",
+                "!",
+                "fdsink",
+                "fd=1",
+            ]
+            self.proc = subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, bufsize=self.w * self.h * 3 * 2
+            )
+            atexit.register(self.proc.kill)  # 프로그램이 끝나면 GStreamer도 끝낸다
         else:
             self.cap = cv2.VideoCapture(src)
             if not self.cap.isOpened():
@@ -217,7 +360,11 @@ class VideoSource:
         ok, f = self.cap.read()
         if not ok:
             return None
-        return f if f.shape[1] == self.w and f.shape[0] == self.h else cv2.resize(f, (self.w, self.h), interpolation=cv2.INTER_AREA)
+        return (
+            f
+            if f.shape[1] == self.w and f.shape[0] == self.h
+            else cv2.resize(f, (self.w, self.h), interpolation=cv2.INTER_AREA)
+        )
 
     def __iter__(self):
         while (f := self.read()) is not None:
@@ -236,9 +383,32 @@ class VideoWriter:
 
     def __init__(self, path: str, size=(1280, 720), fps=24):
         w, h = size
-        cmd = ["gst-launch-1.0", "-q", "-e", "fdsrc", "fd=0", "!", "rawvideoparse", f"width={w}", f"height={h}", "format=bgr",
-               f"framerate={round(fps)}/1", "!", "videoconvert", "!", "video/x-raw,format=NV12", "!", "v4l2h264enc", "!",
-               "h264parse", "!", "mp4mux", "!", "filesink", f"location={path}"]
+        cmd = [
+            "gst-launch-1.0",
+            "-q",
+            "-e",
+            "fdsrc",
+            "fd=0",
+            "!",
+            "rawvideoparse",
+            f"width={w}",
+            f"height={h}",
+            "format=bgr",
+            f"framerate={round(fps)}/1",
+            "!",
+            "videoconvert",
+            "!",
+            "video/x-raw,format=NV12",
+            "!",
+            "v4l2h264enc",
+            "!",
+            "h264parse",
+            "!",
+            "mp4mux",
+            "!",
+            "filesink",
+            f"location={path}",
+        ]
         self.proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
 
     def write(self, frame):
@@ -257,13 +427,19 @@ def iou(a, b):
     x2 = np.minimum(a[:, None, 2], b[None, :, 2])
     y2 = np.minimum(a[:, None, 3], b[None, :, 3])
     inter = np.clip(x2 - x1, 0, None) * np.clip(y2 - y1, 0, None)
-    area = lambda r: (r[:, 2] - r[:, 0]) * (r[:, 3] - r[:, 1])
-    return inter / (area(a)[:, None] + area(b)[None, :] - inter + 1e-6)
+    area_a = (a[:, 2] - a[:, 0]) * (a[:, 3] - a[:, 1])
+    area_b = (b[:, 2] - b[:, 0]) * (b[:, 3] - b[:, 1])
+    return inter / (area_a[:, None] + area_b[None, :] - inter + 1e-6)
 
 
 class Track:
     def __init__(self, tid, det):
-        self.id, self.box, self.score, self.cls = tid, det[:4].copy(), float(det[4]), int(det[5])
+        self.id, self.box, self.score, self.cls = (
+            tid,
+            det[:4].copy(),
+            float(det[4]),
+            int(det[5]),
+        )
         self.hits, self.missed = 1, 0
         self.path = [self.foot()]
 
@@ -273,11 +449,17 @@ class Track:
 
 
 class Tracker:
-    """간단한 추적기. ① 마지막 자리와 많이 겹치는 상자, ② 남은 것 중 가까운 상자 순서로 같은 물체를 잇는다.
+    """간단한 추적기. ① 마지막 자리와 많이 겹치는 상자,
+    ② 남은 것 중 가까운 상자 순서로 같은 물체를 잇는다.
     max_missed 프레임까지 안 보여도(가려짐) 번호를 지킨다"""
 
     def __init__(self, iou_min=0.2, max_missed=25, min_hits=3, near=1.0):
-        self.iou_min, self.max_missed, self.min_hits, self.near = iou_min, max_missed, min_hits, near
+        self.iou_min, self.max_missed, self.min_hits, self.near = (
+            iou_min,
+            max_missed,
+            min_hits,
+            near,
+        )
         self.tracks: list[Track] = []
         self.next_id = 1
 
@@ -285,7 +467,7 @@ class Tracker:
         same = np.array([t.cls for t in self.tracks])[:, None] == dets[None, :, 5].astype(int)
         m = np.where(same, iou(last, dets[:, :4]), 0)
         pairs = []
-        for _ in range(min(m.shape)):                        # ① 큰 겹침부터 짝짓기
+        for _ in range(min(m.shape)):  # ① 큰 겹침부터 짝짓기
             i, j = np.unravel_index(np.argmax(m), m.shape)
             if m[i, j] < self.iou_min:
                 break
@@ -294,7 +476,7 @@ class Tracker:
             m[:, j] = 0
         ti = [i for i in range(len(last)) if i not in {p[0] for p in pairs}]
         dj = [j for j in range(len(dets)) if j not in {p[1] for p in pairs}]
-        if ti and dj:                                        # ② 남은 것: 중심 거리 / 상자 크기
+        if ti and dj:  # ② 남은 것: 중심 거리 / 상자 크기
             c1 = (last[ti, :2] + last[ti, 2:]) / 2
             c2 = (dets[dj, :2] + dets[dj, 2:4]) / 2
             size = np.sqrt((last[ti, 2] - last[ti, 0]) * (last[ti, 3] - last[ti, 1])) + 1
@@ -316,7 +498,12 @@ class Tracker:
         if self.tracks and len(dets):
             for i, j in self._pairs(np.array([t.box for t in self.tracks]), dets):
                 t = self.tracks[i]
-                t.box, t.score, t.hits, t.missed = dets[j, :4].copy(), float(dets[j, 4]), t.hits + 1, -1
+                t.box, t.score, t.hits, t.missed = (
+                    dets[j, :4].copy(),
+                    float(dets[j, 4]),
+                    t.hits + 1,
+                    -1,
+                )
                 t.path.append(t.foot())
                 used.add(j)
         for t in self.tracks:

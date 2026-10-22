@@ -1,5 +1,6 @@
-# 사진 검색: 사진마다 특징 벡터(CLIP 이미지 임베딩)를 NPU로 뽑아 두고, 비슷한 사진·중복 사진을 찾는다
-#   python3 apps/photo_search.py index samples/photos            # 폴더의 사진을 색인(photos.npz)
+# 사진 검색: 사진마다 특징 벡터(CLIP 이미지 임베딩)를 NPU로 뽑아 두고,
+# 비슷한 사진·중복 사진을 찾는다
+#   python3 apps/photo_search.py index samples/photos        # 폴더의 사진을 색인(photos.npz)
 #   python3 apps/photo_search.py query samples/images/forklift.jpg # 비슷한 사진 5장
 #   python3 apps/photo_search.py dups                             # 거의 같은 사진 묶음
 import argparse
@@ -28,7 +29,8 @@ ie = None
 
 
 def embed(path):
-    """사진 → 길이 1인 512차원 벡터. 짧은 변을 256으로 줄이고 가운데를 256×256으로 자른다(CLIP 전처리)"""
+    """사진 → 길이 1인 512차원 벡터.
+    짧은 변을 256으로 줄이고 가운데를 256×256으로 자른다(CLIP 전처리)"""
     global ie
     ie = ie or InferenceEngine(model("clip-img_vit-b32_256x256_datacomp-s34b-b86k.dxnn"))
     img = cv2.imread(str(path))
@@ -37,14 +39,18 @@ def embed(path):
     img = cv2.resize(img, (round(w * s), round(h * s)), interpolation=cv2.INTER_AREA)
     h, w = img.shape[:2]
     y, x = (h - 256) // 2, (w - 256) // 2
-    x_in = cv2.cvtColor(img[y:y + 256, x:x + 256], cv2.COLOR_BGR2RGB).astype(np.float32) / 255
+    x_in = (
+        cv2.cvtColor(img[y : y + 256, x : x + 256], cv2.COLOR_BGR2RGB).astype(np.float32) / 255
+    )
     x_in = np.ascontiguousarray(((x_in - MEAN) / STD).transpose(2, 0, 1)[None], np.float32)
     v = ie.run([x_in])[0].reshape(-1)
     return v / np.linalg.norm(v)
 
 
 if a.cmd == "index":
-    files = sorted(p for p in Path(a.path).iterdir() if p.suffix.lower() in (".jpg", ".jpeg", ".png"))
+    files = sorted(
+        p for p in Path(a.path).iterdir() if p.suffix.lower() in (".jpg", ".jpeg", ".png")
+    )
     t0 = time.perf_counter()
     vecs = np.stack([embed(p) for p in files])
     wall = time.perf_counter() - t0
@@ -55,8 +61,8 @@ if a.cmd == "index":
 db = np.load(a.db)
 vecs, files = db["vecs"], db["files"]
 if a.cmd == "query":
-    sim = vecs @ embed(a.path)                             # 길이 1인 벡터끼리의 내적 = 코사인 유사도
-    for i in np.argsort(sim)[::-1][:a.top]:
+    sim = vecs @ embed(a.path)  # 길이 1인 벡터끼리의 내적 = 코사인 유사도
+    for i in np.argsort(sim)[::-1][: a.top]:
         print(f"  {sim[i]:.3f}  {files[i]}")
 else:
     sim = vecs @ vecs.T
@@ -65,6 +71,12 @@ else:
         same = [j for j in np.where(sim[i] >= a.th)[0] if j != i and j not in shown]
         if same and i not in shown:
             shown.update([i, *same])
-            print("  " + " = ".join(Path(files[k]).name + (f"({sim[i, k]:.3f})" if k != i else "") for k in [i, *same]))
+            print(
+                "  "
+                + " = ".join(
+                    Path(files[k]).name + (f"({sim[i, k]:.3f})" if k != i else "")
+                    for k in [i, *same]
+                )
+            )
     if not shown:
         print("  중복으로 보이는 사진이 없습니다.")

@@ -1,5 +1,5 @@
 # 통행량 세기: 영상 속 사람·자전거·차량이 가상의 선을 어느 방향으로 지나가는지 센다
-#   python3 apps/line_counter.py samples/videos/pedestrians.mp4 --line 0.5,0.3,0.5,1 --save counted.mp4
+#   python3 apps/line_counter.py samples/videos/pedestrians.mp4 --save counted.mp4
 #   --line x1,y1,x2,y2 : 선의 양 끝(화면 폭·높이에 대한 비율 0~1). 고정된 카메라 영상에서 쓴다
 #   방향: 세로선이면 left/right(왼쪽으로·오른쪽으로), 가로선이면 up/down(멀어짐·다가옴)
 #   결과: 화면 표시 영상(--save), 1분 단위 집계 CSV(--csv, 기본 counts.csv)
@@ -13,8 +13,19 @@ from pathlib import Path
 import cv2
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from labkit import (COCO, Tracker, VideoSource, VideoWriter, color, letterbox, model, put_text, side, to_npu,
-                    yolo26_decode)
+from labkit import (
+    COCO,
+    Tracker,
+    VideoSource,
+    VideoWriter,
+    color,
+    letterbox,
+    model,
+    put_text,
+    side,
+    to_npu,
+    yolo26_decode,
+)
 from dx_engine import InferenceEngine
 
 ap = argparse.ArgumentParser()
@@ -32,13 +43,13 @@ A, B = (x1 * W, y1 * H), (x2 * W, y2 * H)
 want = [COCO.index(c) for c in a.classes.split(",")]
 vertical = abs(B[0] - A[0]) < abs(B[1] - A[1])
 
-ie = InferenceEngine(model("yolo26-n_640x640.dxnn"))       # NMS가 없는 모델: ARM 후처리가 가볍다
+ie = InferenceEngine(model("yolo26-n_640x640.dxnn"))  # NMS가 없는 모델: ARM 후처리가 가볍다
 video = VideoSource(a.video, (W, H))
 out = VideoWriter(a.save, (W, H), video.fps) if a.save else None
 tracker = Tracker()
-counted = {}                                               # 트랙 ID → 이미 센 방향
-total = {}                                                 # (분류, 방향) → 수
-per_min = {}                                               # (분, 분류, 방향) → 수
+counted = {}  # 트랙 ID → 이미 센 방향
+total = {}  # (분류, 방향) → 수
+per_min = {}  # (분, 분류, 방향) → 수
 
 
 def handle(frame, dets, idx):
@@ -46,9 +57,16 @@ def handle(frame, dets, idx):
     for tr in tracker.update(dets):
         if len(tr.path) >= 2 and tr.id not in counted:
             s0, s1 = side(tr.path[-2], A, B), side(tr.path[-1], A, B)
-            if s0 != 0 and s1 != 0 and s0 != s1:           # 선을 넘었다
-                (px, py), (qx, qy) = tr.path[0], tr.path[-1]   # 처음 본 곳 → 지금 위치로 방향을 정한다
-                d = ("right" if qx > px else "left") if vertical else ("down" if qy > py else "up")
+            if s0 != 0 and s1 != 0 and s0 != s1:  # 선을 넘었다
+                (px, py), (qx, qy) = (
+                    tr.path[0],
+                    tr.path[-1],
+                )  # 처음 본 곳 → 지금 위치로 방향을 정한다
+                d = (
+                    ("right" if qx > px else "left")
+                    if vertical
+                    else ("down" if qy > py else "up")
+                )
                 counted[tr.id] = d
                 key = (COCO[tr.cls], d)
                 total[key] = total.get(key, 0) + 1
@@ -74,7 +92,7 @@ for frame in video:
     x, r, off = letterbox(frame, 640)
     jobs.append((ie.run_async([to_npu(x)]), frame.copy(), r, off, n))
     n += 1
-    if len(jobs) >= 4:                                     # 결과는 들어온 순서대로 처리(추적은 순서가 중요)
+    if len(jobs) >= 4:  # 결과는 들어온 순서대로 처리(추적은 순서가 중요)
         jid, f, r, off, i = jobs.popleft()
         handle(f, yolo26_decode(ie.wait(jid)[0], r, off, a.conf, want), i)
 while jobs:

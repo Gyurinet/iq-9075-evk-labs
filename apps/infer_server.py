@@ -36,8 +36,14 @@ lock = threading.Lock()
 def detect(img, conf):
     x, r, off = letterbox(img, 640)
     dets = yolo26_decode(DET.run([to_npu(x)])[0], r, off, conf)
-    return [{"label": COCO[int(c)], "score": round(float(s), 3), "box": [round(float(v)) for v in (x1, y1, x2, y2)]}
-            for x1, y1, x2, y2, s, c in dets]
+    return [
+        {
+            "label": COCO[int(c)],
+            "score": round(float(s), 3),
+            "box": [round(float(v)) for v in (x1, y1, x2, y2)],
+        }
+        for x1, y1, x2, y2, s, c in dets
+    ]
 
 
 def classify(img, top):
@@ -45,7 +51,9 @@ def classify(img, top):
     z = CLS.run([x])[0].reshape(-1)
     p = np.exp(z - z.max())
     p /= p.sum()
-    return [{"label": LABELS[i], "score": round(float(p[i]), 4)} for i in np.argsort(p)[::-1][:top]]
+    return [
+        {"label": LABELS[i], "score": round(float(p[i]), 4)} for i in np.argsort(p)[::-1][:top]
+    ]
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -59,8 +67,15 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if urlparse(self.path).path == "/health":
-            return self.reply(200, {"ok": True, "models": ["yolo26n (detect)", "resnet50 (classify)"],
-                                    "requests": stats["requests"], "uptime_s": round(time.time() - stats["started"])})
+            return self.reply(
+                200,
+                {
+                    "ok": True,
+                    "models": ["yolo26n (detect)", "resnet50 (classify)"],
+                    "requests": stats["requests"],
+                    "uptime_s": round(time.time() - stats["started"]),
+                },
+            )
         self.reply(404, {"error": "not found"})
 
     def do_POST(self):
@@ -81,16 +96,22 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(404, {"error": "not found"})
         with lock:
             stats["requests"] += 1
-        result.update(width=img.shape[1], height=img.shape[0], ms=round((time.perf_counter() - t0) * 1000, 1))
+        result.update(
+            width=img.shape[1],
+            height=img.shape[0],
+            ms=round((time.perf_counter() - t0) * 1000, 1),
+        )
         self.reply(200, result)
 
-    def log_message(self, fmt, *args):                    # 요청마다 한 줄씩 남긴다
+    def log_message(self, fmt, *args):  # 요청마다 한 줄씩 남긴다
         sys.stderr.write(f"{self.address_string()} {fmt % args}\n")
 
 
-ThreadingHTTPServer.request_queue_size = 128               # 동시에 몰리는 연결을 받아 둘 줄(기본 5면 끊긴다)
+ThreadingHTTPServer.request_queue_size = 128  # 동시에 몰리는 연결을 받아 둘 줄(기본 5면 끊긴다)
 ThreadingHTTPServer.daemon_threads = True
-server = ThreadingHTTPServer((a.host, a.port), Handler)   # 요청마다 스레드 하나: 여러 요청이 NPU를 겹쳐 쓴다
+server = ThreadingHTTPServer(
+    (a.host, a.port), Handler
+)  # 요청마다 스레드 하나: 여러 요청이 NPU를 겹쳐 쓴다
 print(f"추론 서버 시작: http://{a.host}:{a.port}  (끝내려면 Ctrl+C)", flush=True)
 try:
     server.serve_forever()

@@ -18,7 +18,7 @@ B = InferenceOption.BOUND_OPTION
 
 def load(name, bound):
     o = InferenceOption()
-    o.set_bound_option(bound)                             # 이 모델이 쓸 NPU 코어
+    o.set_bound_option(bound)  # 이 모델이 쓸 NPU 코어
     return InferenceEngine(model(name), o)
 
 
