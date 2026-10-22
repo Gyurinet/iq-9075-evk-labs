@@ -39,10 +39,9 @@ def embed(path):
     img = cv2.resize(img, (round(w * s), round(h * s)), interpolation=cv2.INTER_AREA)
     h, w = img.shape[:2]
     y, x = (h - 256) // 2, (w - 256) // 2
-    x_in = (
-        cv2.cvtColor(img[y : y + 256, x : x + 256], cv2.COLOR_BGR2RGB).astype(np.float32) / 255
-    )
-    x_in = np.ascontiguousarray(((x_in - MEAN) / STD).transpose(2, 0, 1)[None], np.float32)
+    crop = cv2.cvtColor(img[y : y + 256, x : x + 256], cv2.COLOR_BGR2RGB)
+    x_in = (crop.astype(np.float32) / 255 - MEAN) / STD
+    x_in = np.ascontiguousarray(x_in.transpose(2, 0, 1)[None], np.float32)
     v = ie.run([x_in])[0].reshape(-1)
     return v / np.linalg.norm(v)
 
