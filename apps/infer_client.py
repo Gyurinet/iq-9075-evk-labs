@@ -29,8 +29,11 @@ def call():
 
 if not a.bench:
     res, ms = call()
-    print(json.dumps(res, ensure_ascii=False, indent=1))
-    print(f"왕복 {ms:.1f} ms (서버 처리 {res['ms']} ms)")
+    for o in res.get("objects", []):  # 검출: 물체 하나에 한 줄
+        print(f"{o['label']:<14}{o['score']:.3f}  box={o['box']}")
+    for o in res.get("top", []):  # 분류: 상위 n개
+        print(f"{o['label']:<20}{o['score']:.4f}")
+    print(f"사진 {res['width']}×{res['height']}, 왕복 {ms:.1f} ms (서버 처리 {res['ms']} ms)")
 else:
     call()  # 준비
     t0 = time.perf_counter()
