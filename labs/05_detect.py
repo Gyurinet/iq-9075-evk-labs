@@ -1,5 +1,6 @@
 # 실습 5: 사진에서 객체 검출(YOLO11n 또는 YOLO26n, COCO 80종)
-#   python3 labs/05_detect.py <이미지> [yolo11n|yolo26n] [-o 결과.jpg]
+#   python3 labs/05_detect.py <이미지> [--model yolo26n] [--conf 0.3] [-o 결과.jpg]
+import argparse
 import sys
 from pathlib import Path
 
@@ -9,19 +10,21 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from labkit import COCO, draw_boxes, letterbox, model, to_npu, yolo11_decode, yolo26_decode
 from dx_engine import InferenceEngine
 
-args = [a for a in sys.argv[1:] if a != "-o"]
-out = sys.argv[sys.argv.index("-o") + 1] if "-o" in sys.argv else "detect.jpg"
-if out in args:
-    args.remove(out)
-path, kind = args[0], (args[1] if len(args) > 1 else "yolo11n")
-ie = InferenceEngine(
-    model({"yolo11n": "yolo11-n_640x640.dxnn", "yolo26n": "yolo26-n_640x640.dxnn"}[kind])
-)
+MODELS = {"yolo11n": "yolo11-n_640x640.dxnn", "yolo26n": "yolo26-n_640x640.dxnn"}
+ap = argparse.ArgumentParser()
+ap.add_argument("image")
+ap.add_argument("--model", choices=list(MODELS), default="yolo11n")
+ap.add_argument("--conf", type=float, default=0.3, help="이보다 점수가 낮은 상자는 버린다")
+ap.add_argument("-o", default="detect.jpg", help="결과 그림")
+a = ap.parse_args()
+path, out = a.image, a.o
+ie = InferenceEngine(model(MODELS[a.model]))
 
 img = cv2.imread(path)
 x, r, off = letterbox(img, 640)
 pred = ie.run([to_npu(x)])[0]
-dets = (yolo11_decode if kind == "yolo11n" else yolo26_decode)(pred, r, off, conf=0.3)
+decode = yolo11_decode if a.model == "yolo11n" else yolo26_decode
+dets = decode(pred, r, off, conf=a.conf)
 
 counts = {}
 for *_, c in dets:
