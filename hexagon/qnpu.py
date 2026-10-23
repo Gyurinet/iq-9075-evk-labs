@@ -2,6 +2,7 @@
 # 결과를 해석한다. 영상 입출력·추적·그리기는 저장소 맨 위의 labkit.py를 쓴다.
 import atexit
 import ctypes
+import hashlib
 import os
 import queue
 import sys
@@ -87,6 +88,15 @@ def labels(name: str) -> list[str]:
     return (model_path(name).parent / "labels.txt").read_text().splitlines()
 
 
+def _token(path: Path) -> str:
+    """캐시 이름. 델리게이트는 캐시를 모델 구조로만 구분해서, 구조가 같고
+    가중치만 다른 모델(다시 학습·보정한 모델)이 먼저 만든 캐시를 그대로 쓴다.
+    파일 경로·크기·수정 시각으로 캐시를 나눈다"""
+    st = path.stat()
+    key = f"{path.resolve()}|{st.st_size}|{st.st_mtime_ns}"
+    return hashlib.sha1(key.encode()).hexdigest()[:16]
+
+
 class Model:
     """LiteRT 모델 하나. device="npu"면 Hexagon NPU(HTP), "cpu"면 ARM CPU(XNNPACK)에서 실행한다.
     htp: 쓸 HTP 번호(0 또는 1), perf: "default" 또는 "burst"(클록을 최대로)"""
@@ -107,6 +117,7 @@ class Model:
                     "htp_precision": "1" if is_float else "0",  # 실수 모델은 fp16으로
                     "htp_performance_mode": "2" if perf == "burst" else "0",
                     "cache_dir": str(CACHE),  # 처음 한 번 만든 그래프를 다시 쓴다
+                    "model_token": _token(path),
                 }
                 delegates.append(load_delegate("libQnnTFLiteDelegate.so", options=options))
             self.it = Interpreter(
