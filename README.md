@@ -455,8 +455,25 @@ python3 $L/labs/05_detect.py $S/images/crossing.jpg --model yolo26n -o detect.jp
 python3 $L/labs/06_segment.py $S/images/crossing.jpg -o segment.jpg
 python3 $L/labs/07_pose.py $S/images/pedestrians.jpg -o pose.jpg
 python3 $L/labs/08_depth.py $S/images/roundabout.jpg -o depth.jpg
-python3 $L/labs/09_npu_cores.py 10
 ```
+
+`09_npu_cores.py`는 무거운 일로 DeepLabV3+ 분할 모델을 쓰므로, 이 모델을 먼저 따로 받습니다(`get-models.sh`에는 들어 있지 않습니다).
+
+```bash
+cd ~/npu-models
+wget https://sdk.deepx.ai/modelzoo/dxnn/2_4_0/deeplabv3plus_mobilenetv1_512x512.dxnn
+cd ~/iq-9075-evk-labs
+source ~/npu-venv/bin/activate
+python3 labs/09_npu_cores.py 10
+```
+
+```text
+분류만(기준)                        분류 응답 중앙값   8.79 ms, 95%  11.24 ms | 분할 없음
+함께, 코어 0·1·2 함께 쓰기             분류 응답 중앙값  17.91 ms, 95%  23.36 ms | 분할  223.5 FPS
+함께, 분류 코어 0 / 분할 코어 1·2        분류 응답 중앙값  10.08 ms, 95%  12.31 ms | 분할  165.7 FPS
+```
+
+급한 일(분류)에 코어 0을, 무거운 일(분할)에 코어 1·2를 나눠 주면 분류 응답 시간이 거의 그대로 돌아옵니다. 응답 시간은 CPU 주파수 정책에 따라 달라지므로, 비교할 때는 `performance` 정책에서 재면 흔들림이 줄어듭니다.
 
 ### 응용
 
