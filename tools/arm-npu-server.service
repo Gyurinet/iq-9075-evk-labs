@@ -3,13 +3,13 @@
 #   sudo systemctl daemon-reload && sudo systemctl enable --now arm-npu-server
 # 계정이나 경로가 다르면 User, WorkingDirectory, ExecStart를 고친다.
 [Unit]
-Description=ARM + NPU inference server (arm-npu-labs)
+Description=ARM + NPU inference server (iq-9075-evk-labs)
 After=network-online.target dxrt.service
 Requires=dxrt.service
 
 [Service]
 User=ubuntu
-WorkingDirectory=/home/ubuntu/arm-npu-labs
+WorkingDirectory=/home/ubuntu/iq-9075-evk-labs
 ExecStart=/home/ubuntu/npu-venv/bin/python apps/infer_server.py --port 8080
 Restart=on-failure
 RestartSec=3

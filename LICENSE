@@ -10,9 +10,10 @@ Copyright (c) 2026 규리넷 주식회사(gyurinet). All rights reserved.
    회사의 서면 허가 없이 자료나 그 수정본을 판매하거나, 상용 제품·서비스에 포함해 배포할 수 없습니다.
 
 3. 제3자 구성 요소
-   자료가 사용하는 외부 소프트웨어(DEEPX SDK, OpenCV, ONNX Runtime, GStreamer 등)와 모델, 데이터는
+   자료가 사용하는 외부 소프트웨어(DEEPX SDK, Qualcomm AI Runtime, LiteRT, OpenCV, ONNX Runtime, GStreamer 등)와
+   모델(DEEPX 모델 저장소, Qualcomm AI Hub), 데이터는
    각 배포처의 라이선스와 이용 조건을 따릅니다.
-   samples/의 사진과 영상은 이 허가 대상이 아니며, samples/SOURCES.md에 적은 원래 조건(퍼블릭 도메인·CC0)을 따릅니다.
+   samples/의 사진·영상·소리는 이 허가 대상이 아니며, samples/SOURCES.md에 적은 원래 조건(퍼블릭 도메인·CC0)을 따릅니다.
 
 4. 보증의 부인
    자료는 "있는 그대로" 제공됩니다. 관련 법령이 허용하는 범위에서 회사는 자료의 사용으로
