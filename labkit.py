@@ -194,7 +194,7 @@ def cpu_seconds():
     return total
 
 
-# ───── 영상 입출력: 해독·인코딩은 SoC의 하드웨어 코덱(V4L2)이, 크기·색 변환은 ARM이 한다 ─────
+# ───── 영상 입출력: 기본은 ARM 소프트웨어(OpenCV), --hw면 SoC의 하드웨어 코덱(V4L2) ─────
 def _gst_source(src: str) -> list[str]:
     """입력 주소 → GStreamer 앞부분(파일 mp4, RTSP 카메라, USB 카메라)"""
     if src.startswith("rtsp://"):

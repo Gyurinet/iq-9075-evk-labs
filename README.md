@@ -6,7 +6,7 @@ NPU가 신경망 계산을 맡는 구성을 실습과 현장형 응용으로 익
 NPU는 두 가지를 다룹니다.
 
 - **내장 NPU**: IQ-9075 프로세서 안의 Qualcomm Hexagon NPU(HTP 2개). 추가 장치 없이 바로 씁니다. → `hexagon/`
-- **DX-M1**: 보드의 M.2 슬롯(PCIe Gen3 x4)에 꽂는 DEEPX DX-M1 NPU 모듈. → `labs/`, `apps/`, `tools/`
+- **DX-M1**: 보드의 PCIe x4 슬롯에 연결하는 DEEPX DX-M1 NPU 모듈(M.2 모듈, PCIe Gen3 x4로 동작). → `labs/`, `apps/`, `tools/`
 
 둘 중 하나만 있어도 되고, 둘 다 있으면 한 프로그램에서 함께 쓰는 예제도 돌릴 수 있습니다.
 이 README의 명령과 수치는 2026년 10월 IQ-9075 EVK 실제 장비에서 확인한 것입니다.
@@ -42,8 +42,8 @@ NPU는 두 가지를 다룹니다.
 | 글자 읽기(OCR) | `hexagon/apps/read_text.py` | 경고 표지판의 영문을 읽음. 글자 찾기 장당 30 ms |
 | 소리 감시 | `hexagon/apps/sound_watch.py` | 사이렌·경보·경적을 실시간의 342배 속도로 분류 |
 | 사내 추론 서버 | `hexagon/apps/infer_server.py`, `apps/infer_server.py` | HTTP로 사진을 받아 JSON 응답. 검출 초당 276건(내장 NPU) |
-| 여러 카메라 동시 처리 | `hexagon/apps/multi_camera.py`, `apps/multi_stream.py` | 640×360 카메라 8대(내장 NPU), 6대(DX-M1) 실시간 |
-| 두 NPU 동시에 | `labs/11_two_npus.py` | 각자 처리량의 97~98%를 유지해 합계 초당 800장 넘게 검출 |
+| 여러 카메라 동시 처리 | `hexagon/apps/multi_camera.py`, `apps/multi_stream.py` | 1080p·24 FPS 카메라 8대(내장 NPU), 6대(DX-M1)를 640×360으로 분석해 실시간 |
+| 두 NPU 동시에 | `labs/11_two_npus.py` | 각자 처리량의 93~98%를 유지해 합계 초당 800장 안팎 검출 |
 
 FPS는 1080p 보행자 영상(`samples/videos/pedestrians.mp4`)을 파일에서 읽어 처리한 속도입니다.
 
@@ -510,7 +510,7 @@ sudo systemctl enable --now arm-npu-server
 
 | 도구 | 하는 일 |
 |---|---|
-| `python3 hexagon/bench.py [모델 …]` | 내장 NPU 모델별 ARM CPU 8코어와 NPU(기본·최고 성능 모드)의 한 장 처리 시간(전체 5분 정도) |
+| `python3 hexagon/bench.py [모델 …]` | 내장 NPU 모델별 ARM CPU 8코어와 NPU(기본·최고 성능 모드)의 한 장 처리 시간(전체 3분 정도) |
 | `python3 hexagon/ops.py <모델>` | 모델의 입력·출력, 연산 종류별 개수, 내장 NPU에 올라가는지 |
 | `python3 hexagon/soak.py --minutes 30` | HTP 2개를 최고 성능 모드로 계속 쓰며 처리량과 온도 기록 |
 | `bash hexagon/temps.sh` | 내장 NPU(HTP 0·1), ARM CPU, GPU 온도 |

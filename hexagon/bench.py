@@ -1,6 +1,6 @@
 # 내장 NPU 모델 성능 표: 모델마다 ARM CPU(8코어)와 NPU(기본·최고 성능 모드)의
 # 1장 처리 시간을 잰다
-#   python3 hexagon/bench.py            # 모든 모델(5분 정도)
+#   python3 hexagon/bench.py            # 모든 모델(3분 정도)
 #   python3 hexagon/bench.py yolox ffnet
 import sys
 import time
